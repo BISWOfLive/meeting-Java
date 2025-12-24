@@ -74,11 +74,4 @@ public class RedisComponent {
     public MeetingMemberDto getMeetingMember(String meetingId, String userId) {
         return (MeetingMemberDto) redisUtils.hget(Constants.REDIS_KEY_MEETING_ROOM + meetingId, userId);
     }
-
-    public void deleteToken(String token, String userId) {
-        // 删除token对应的用户信息
-        redisUtils.delete(Constants.REDIS_KEY_WS_TOKEN + token);
-        // 删除userId对应的token
-        redisUtils.delete(Constants.REDIS_KEY_WS_TOKEN_USERID + userId);
-    }
 }

@@ -1,8 +1,5 @@
 package com.easymeeting.controller;
 
-
-import com.easymeeting.entity.dto.TokenUserInfoDto;
-import com.easymeeting.entity.po.UserInfo;
 import com.easymeeting.entity.vo.ResponseVO;
 import com.easymeeting.entity.vo.checkCodeVO;
 import com.easymeeting.entity.vo.UserInfoVo;
@@ -14,9 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Size;
@@ -80,24 +75,5 @@ public class AccountController extends ABaseController {
         } finally {
             redisComponent.cleanCheckCode(checkCodeKey);
         }
-    }
-
-    @RequestMapping("/logout")
-    public ResponseVO logout() {
-        // 获取当前用户的token信息
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfo();
-        if (tokenUserInfoDto == null) {
-            throw new BusinessException("用户未登录");
-        }
-        
-        // 更新数据库中的登出时间
-        UserInfo userInfo = new UserInfo();
-        userInfo.setLastOffTime(System.currentTimeMillis());
-        userInfoService.updateUserInfoByUserId(userInfo, tokenUserInfoDto.getUserId());
-        
-        // 删除Redis中的token
-        redisComponent.deleteToken(tokenUserInfoDto.getToken(), tokenUserInfoDto.getUserId());
-        
-        return getSuccessResponseVO(null);
     }
 }
