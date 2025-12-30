@@ -1,7 +1,6 @@
 package com.easymeeting.entity.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 import java.io.Serializable;
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -24,7 +23,7 @@ import java.io.Serializable;
 
         private long sendTime;
 
-        private long messageId;
+        private String messageId;
 
         private Integer status;
 
@@ -98,11 +97,11 @@ import java.io.Serializable;
             this.sendTime = sendTime;
         }
 
-        public long getMessageId() {
+        public String getMessageId() {
             return messageId;
         }
 
-        public void setMessageId(long messageId) {
+        public void setMessageId(String messageId) {
             this.messageId = messageId;
         }
 

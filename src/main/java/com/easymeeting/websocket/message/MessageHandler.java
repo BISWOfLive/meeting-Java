@@ -10,6 +10,6 @@ import java.util.concurrent.TimeoutException;
 public interface MessageHandler {
     void listenMessage();
 
-    void sendMessage(MessageSendDto messageSendDto) throws IOException, TimeoutException;
+    void sendMessage(MessageSendDto messageSendDto);
 
 }

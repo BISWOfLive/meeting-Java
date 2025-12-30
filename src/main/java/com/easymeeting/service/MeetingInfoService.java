@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 import com.easymeeting.entity.dto.TokenUserInfoDto;
+import com.easymeeting.entity.enums.MeetingMemberStatusEnum;
+import com.easymeeting.entity.enums.MeetingStatusEnum;
 import com.easymeeting.entity.query.MeetingInfoQuery;
 import com.easymeeting.entity.po.MeetingInfo;
 import com.easymeeting.entity.vo.PaginationResultVO;
@@ -76,8 +78,9 @@ public interface MeetingInfoService {
 
 	void quickMeeting(MeetingInfo meetingInfo ,String nickName);
 
-	void joinMeeting(String meetingId,String userId,String nickName,Integer sex,Boolean videoOpen) throws IOException, TimeoutException;
+	void joinMeeting(String meetingId,String userId,String nickName,Integer sex,Boolean videoOpen);
 
 	String preJoinMeeting(String meetingNo, TokenUserInfoDto tokenUserInfoDto, String joinPassword);
 
+	void exitMeetingRoom(TokenUserInfoDto tokenUserInfoDto, MeetingMemberStatusEnum statusEnum);
 }

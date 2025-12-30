@@ -3,6 +3,7 @@ package com.easymeeting.redis;
 import com.easymeeting.entity.constants.Constants;
 import com.easymeeting.entity.dto.MeetingMemberDto;
 import com.easymeeting.entity.dto.TokenUserInfoDto;
+import com.easymeeting.entity.enums.MeetingMemberStatusEnum;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -73,5 +74,15 @@ public class RedisComponent {
 
     public MeetingMemberDto getMeetingMember(String meetingId, String userId) {
         return (MeetingMemberDto) redisUtils.hget(Constants.REDIS_KEY_MEETING_ROOM + meetingId, userId);
+    }
+
+    public Boolean exitMeeting(String meetingId,String userId, MeetingMemberStatusEnum statusEnum) {
+        MeetingMemberDto meetingMemberDto = getMeetingMember(meetingId, userId);
+        if (meetingMemberDto == null){
+            return false;
+        }
+        meetingMemberDto.setStatus(statusEnum.getStatus());
+        add2Meeting(meetingId,meetingMemberDto);
+        return true;
     }
 }

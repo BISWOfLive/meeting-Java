@@ -3,6 +3,7 @@ package com.easymeeting.controller;
 
 import com.easymeeting.annotition.GlobalInterceptor;
 import com.easymeeting.entity.dto.TokenUserInfoDto;
+import com.easymeeting.entity.enums.MeetingMemberStatusEnum;
 import com.easymeeting.entity.po.MeetingInfo;
 import com.easymeeting.entity.query.MeetingInfoQuery;
 import com.easymeeting.entity.vo.PaginationResultVO;
@@ -20,6 +21,8 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 
 
 @RestController
@@ -89,9 +92,17 @@ public class MeetingInfoController extends ABaseController {
 
     @RequestMapping("/joinMeeting")
     @GlobalInterceptor
-    public ResponseVO joinMeeting(@NotNull Boolean videoOpen) {
+    public ResponseVO joinMeeting(@NotNull Boolean videoOpen){
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfo();
         meetingInfoService.joinMeeting(tokenUserInfoDto.getCurrentMeetingId(),tokenUserInfoDto.getUserId(),tokenUserInfoDto.getNickName(),tokenUserInfoDto.getSex(),videoOpen);
         return getSuccessResponseVO(tokenUserInfoDto);
+    }
+
+    @RequestMapping("/exitMeeting")
+    @GlobalInterceptor
+    public ResponseVO exitMeeting(){
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfo();
+        meetingInfoService.exitMeetingRoom(tokenUserInfoDto,MeetingMemberStatusEnum.EXIT_MEETING);
+        return getSuccessResponseVO(null);
     }
 }

@@ -8,18 +8,18 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 
-import com.easymeeting.entity.dto.MeetingJoinDto;
-import com.easymeeting.entity.dto.MeetingMemberDto;
-import com.easymeeting.entity.dto.MessageSendDto;
-import com.easymeeting.entity.dto.TokenUserInfoDto;
+import com.easymeeting.entity.dto.*;
 import com.easymeeting.entity.enums.*;
 import com.easymeeting.entity.po.MeetingMember;
 import com.easymeeting.entity.query.MeetingMemberQuery;
 import com.easymeeting.exception.BusinessException;
 import com.easymeeting.mappers.MeetingMemberMapper;
 import com.easymeeting.redis.RedisComponent;
+import com.easymeeting.utils.JsonUtils;
 import com.easymeeting.websocket.ChannelContextUtils;
 import com.easymeeting.websocket.message.MessageHandler;
+import jodd.util.ArraysUtil;
+import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.stereotype.Service;
 import com.easymeeting.entity.query.MeetingInfoQuery;
 import com.easymeeting.entity.po.MeetingInfo;
@@ -194,7 +194,7 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
     }
 
     @Override
-    public void joinMeeting(String meetingId, String userId, String nickName, Integer sex, Boolean videoOpen) throws IOException, TimeoutException {
+    public void joinMeeting(String meetingId, String userId, String nickName, Integer sex, Boolean videoOpen){
         if (StringTools.isEmpty(meetingId)) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
         }
@@ -264,5 +264,42 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
         }
     }
 
+    @Override
+    public void exitMeetingRoom(TokenUserInfoDto tokenUserInfoDto, MeetingMemberStatusEnum statusEnum) {
+        String meetingId = tokenUserInfoDto.getCurrentMeetingId();
+        if (StringTools.isEmpty(meetingId)) return;
+        String userId = tokenUserInfoDto.getUserId();
+        Boolean exit = redisComponent.exitMeeting(meetingId,userId,statusEnum);
+        if (!exit){
+            tokenUserInfoDto.setCurrentMeetingId(null);
+            redisComponent.saveTokenUserInfoDto(tokenUserInfoDto);
+            return;
+        }
+        MessageSendDto messageSendDto = new MessageSendDto();
+        messageSendDto.setMessageType(MessageTypeEnum.EXIT_MEETING_ROOM.getType());
 
+        List<MeetingMemberDto> meetingMemberDtoList = redisComponent.getMeetingMemberList(meetingId);
+        MeetingExitDto exitDto = new MeetingExitDto();
+        exitDto.setMeetingMemberList(meetingMemberDtoList);
+        exitDto.setExitUserId(userId);
+        exitDto.setExitStatus(statusEnum.getStatus());
+
+        messageSendDto.setMessageContent(JsonUtils.convertObj2Json(exitDto));
+        messageSendDto.setMeetingId(meetingId);
+        messageSendDto.setMessageSend2Type(MessageSend2TypeEnum.GROUP.getType());
+        messageHandler.sendMessage(messageSendDto);
+
+        List<MeetingMemberDto> onLineMemberList =
+                meetingMemberDtoList.stream().filter(item -> MeetingMemberStatusEnum.NORMAL.getStatus().equals(item.getStatus())).collect(Collectors.toList());
+
+        if (onLineMemberList.isEmpty()){
+            //TODO 结束会议
+            return;
+        }
+        if (ArrayUtils.contains(new Integer[]{MeetingMemberStatusEnum.KICK_OUT.getStatus(),MeetingMemberStatusEnum.BLACKLIST.getStatus()},statusEnum.getStatus())){
+            MeetingMember meetingMember = new MeetingMember();
+            meetingMember.setStatus(statusEnum.getStatus());
+            meetingMemberMapper.updateByMeetingIdAndUserId(meetingMember,meetingId,userId);
+        }
+    }
 }
