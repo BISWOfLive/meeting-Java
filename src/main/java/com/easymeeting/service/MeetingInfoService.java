@@ -1,6 +1,8 @@
 package com.easymeeting.service;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 import com.easymeeting.entity.dto.TokenUserInfoDto;
 import com.easymeeting.entity.query.MeetingInfoQuery;
@@ -74,7 +76,7 @@ public interface MeetingInfoService {
 
 	void quickMeeting(MeetingInfo meetingInfo ,String nickName);
 
-	void joinMeeting(String meetingId,String userId,String nickName,Integer sex,Boolean videoOpen);
+	void joinMeeting(String meetingId,String userId,String nickName,Integer sex,Boolean videoOpen) throws IOException, TimeoutException;
 
 	String preJoinMeeting(String meetingNo, TokenUserInfoDto tokenUserInfoDto, String joinPassword);
 

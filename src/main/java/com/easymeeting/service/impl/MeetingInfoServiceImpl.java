@@ -1,7 +1,9 @@
 package com.easymeeting.service.impl;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
@@ -17,6 +19,7 @@ import com.easymeeting.exception.BusinessException;
 import com.easymeeting.mappers.MeetingMemberMapper;
 import com.easymeeting.redis.RedisComponent;
 import com.easymeeting.websocket.ChannelContextUtils;
+import com.easymeeting.websocket.message.MessageHandler;
 import org.springframework.stereotype.Service;
 import com.easymeeting.entity.query.MeetingInfoQuery;
 import com.easymeeting.entity.po.MeetingInfo;
@@ -41,6 +44,9 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
 
     @Resource
     private RedisComponent redisComponent;
+
+    @Resource
+    private MessageHandler messageHandler;
 
     @Resource
     private MeetingMemberMapper<MeetingMember, MeetingMemberQuery> meetingMemberMapper;
@@ -188,7 +194,7 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
     }
 
     @Override
-    public void joinMeeting(String meetingId, String userId, String nickName, Integer sex, Boolean videoOpen) {
+    public void joinMeeting(String meetingId, String userId, String nickName, Integer sex, Boolean videoOpen) throws IOException, TimeoutException {
         if (StringTools.isEmpty(meetingId)) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
         }
@@ -220,7 +226,7 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
         messageSendDto.setMessageContent(meetingJoinDto);
         messageSendDto.setMeetingId(meetingId);
         messageSendDto.setMessageSend2Type(MessageSend2TypeEnum.GROUP.getType());
-        channelContextUtils.sendMessage(messageSendDto);
+        messageHandler.sendMessage(messageSendDto);
     }
 
     @Override

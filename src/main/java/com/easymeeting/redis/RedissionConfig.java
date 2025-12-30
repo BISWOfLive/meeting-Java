@@ -17,7 +17,7 @@ public class RedissionConfig {
     @Value("${spring.redis.host:}")
     private String redisHost;
 
-    @Value("@{spring.redis.port:}")
+    @Value("${spring.redis.port:}")
     private Integer redisPort;
 
     @Bean(name = "redissionClient",destroyMethod = "shutdown")
