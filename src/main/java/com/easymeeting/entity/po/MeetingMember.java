@@ -1,6 +1,5 @@
 package com.easymeeting.entity.po;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.Date;
 import com.easymeeting.entity.enums.DateTimePatternEnum;
 import com.easymeeting.utils.DateUtil;
@@ -13,6 +12,7 @@ import java.io.Serializable;
 /**
  * 
  */
+//是一个会议成员实体类，用于存储和管理参与某个会议的用户信息
 public class MeetingMember implements Serializable {
 
 	/**

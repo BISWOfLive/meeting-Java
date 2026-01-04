@@ -83,4 +83,8 @@ public interface MeetingInfoService {
 	String preJoinMeeting(String meetingNo, TokenUserInfoDto tokenUserInfoDto, String joinPassword);
 
 	void exitMeetingRoom(TokenUserInfoDto tokenUserInfoDto, MeetingMemberStatusEnum statusEnum);
+
+	void forceExitMeeting(TokenUserInfoDto tokenUserInfoDto,String userId , MeetingMemberStatusEnum statusEnum);
+
+	void finishMeeting(String meetingId, String userId);
 }

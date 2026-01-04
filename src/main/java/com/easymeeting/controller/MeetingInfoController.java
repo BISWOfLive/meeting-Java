@@ -4,10 +4,12 @@ package com.easymeeting.controller;
 import com.easymeeting.annotition.GlobalInterceptor;
 import com.easymeeting.entity.dto.TokenUserInfoDto;
 import com.easymeeting.entity.enums.MeetingMemberStatusEnum;
+import com.easymeeting.entity.enums.MeetingStatusEnum;
 import com.easymeeting.entity.po.MeetingInfo;
 import com.easymeeting.entity.query.MeetingInfoQuery;
 import com.easymeeting.entity.vo.PaginationResultVO;
 import com.easymeeting.entity.vo.ResponseVO;
+import com.easymeeting.exception.BusinessException;
 import com.easymeeting.service.MeetingInfoService;
 import com.easymeeting.utils.StringTools;
 import lombok.extern.slf4j.Slf4j;
@@ -33,13 +35,6 @@ public class MeetingInfoController extends ABaseController {
     @Resource
     private MeetingInfoService meetingInfoService;
 
-
-    @RequestMapping("/getCurrentMeeting")
-    @GlobalInterceptor
-    public ResponseVO getCurrentMeeting() {
-        return getSuccessResponseVO(null);
-    }
-
     @RequestMapping("/loadMeeting")
     @GlobalInterceptor
     public ResponseVO loadMeeting(Integer pageNo) {
@@ -61,7 +56,7 @@ public class MeetingInfoController extends ABaseController {
                                    @Size(max = 5) String joinPassword) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfo();
         if (tokenUserInfoDto.getCurrentMeetingId() != null){
-            throw new RuntimeException("你有未结束的会议,无法创建新的会议");
+            throw new BusinessException("你有未结束的会议,无法创建新的会议");
         }
         MeetingInfo meetingInfo = new MeetingInfo();
         meetingInfo.setMeetingName(meetingName);
@@ -88,8 +83,6 @@ public class MeetingInfoController extends ABaseController {
         return getSuccessResponseVO(meetingId);
     }
 
-
-
     @RequestMapping("/joinMeeting")
     @GlobalInterceptor
     public ResponseVO joinMeeting(@NotNull Boolean videoOpen){
@@ -103,6 +96,44 @@ public class MeetingInfoController extends ABaseController {
     public ResponseVO exitMeeting(){
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfo();
         meetingInfoService.exitMeetingRoom(tokenUserInfoDto,MeetingMemberStatusEnum.EXIT_MEETING);
+        return getSuccessResponseVO(null);
+    }
+
+    @RequestMapping("/kickOutMeeting")
+    @GlobalInterceptor
+    public ResponseVO kickOutMeeting(@NotEmpty String userId){
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfo();
+        meetingInfoService.forceExitMeeting(tokenUserInfoDto,userId,MeetingMemberStatusEnum.KICK_OUT);
+        return getSuccessResponseVO(null);
+    }
+
+    @RequestMapping("/blackMeeting")
+    @GlobalInterceptor
+    public ResponseVO blackMeeting(@NotEmpty String userId){
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfo();
+        meetingInfoService.forceExitMeeting(tokenUserInfoDto,userId,MeetingMemberStatusEnum.BLACKLIST);
+        return getSuccessResponseVO(null);
+    }
+
+    @RequestMapping("/getCurrentMeeting")
+    @GlobalInterceptor
+    public ResponseVO getCurrentMeeting(){
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfo();
+        if (StringTools.isEmpty(tokenUserInfoDto.getCurrentMeetingId())){
+            return getSuccessResponseVO(null);
+        }
+        MeetingInfo meetingInfo = this.meetingInfoService.getMeetingInfoByMeetingId(tokenUserInfoDto.getCurrentMeetingId());
+        if (MeetingStatusEnum.FINISHEN.getStatus().equals(meetingInfo.getStatus())){
+            return getSuccessResponseVO(null);
+        }
+        return getSuccessResponseVO(meetingInfo);
+    }
+
+    @RequestMapping("/finishMeeting")
+    @GlobalInterceptor
+    public ResponseVO finishMeeting(){
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfo();
+        meetingInfoService.finishMeeting(tokenUserInfoDto.getCurrentMeetingId(),tokenUserInfoDto.getUserId());
         return getSuccessResponseVO(null);
     }
 }

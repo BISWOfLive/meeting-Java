@@ -85,4 +85,13 @@ public class RedisComponent {
         add2Meeting(meetingId,meetingMemberDto);
         return true;
     }
+
+    public void removeAllMeetingMember(String meetingId){
+        List<MeetingMemberDto> meetingMemberList = getMeetingMemberList(meetingId);
+        List<String> userIdList = meetingMemberList.stream().map(MeetingMemberDto::getUserid).collect(Collectors.toList());
+        if (userIdList.isEmpty()){
+            return;
+        }
+        redisUtils.hdel(Constants.REDIS_KEY_MEETING_ROOM+meetingId,userIdList.toArray(new String[userIdList.size()]));
+    }
 }
