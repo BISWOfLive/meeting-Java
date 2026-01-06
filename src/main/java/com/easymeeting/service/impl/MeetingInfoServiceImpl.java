@@ -178,7 +178,7 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
     private void add2Meeting(String meetingId, String userId, String nickName, Integer sex, Boolean videoOpen, Integer meetingType) {
 
         MeetingMemberDto meetingMemberDto = new MeetingMemberDto();
-        meetingMemberDto.setUserid(userId);
+        meetingMemberDto.setUserId(userId);
         meetingMemberDto.setNickName(nickName);
         meetingMemberDto.setStatus(MeetingMemberStatusEnum.NORMAL.getStatus());
         meetingMemberDto.setJoinTime(System.currentTimeMillis());
@@ -188,39 +188,62 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
         redisComponent.add2Meeting(meetingId, meetingMemberDto);
     }
 
+    /**
+     * 加入会议处理
+     * 将用户添加到指定会议中，包括验证会议状态、检查加入权限、添加成员信息、发送加入消息等
+     *
+     * @param meetingId 会议ID
+     * @param userId 用户ID
+     * @param nickName 用户昵称
+     * @param sex 用户性别
+     * @param videoOpen 视频是否开启
+     * @throws BusinessException 业务异常，如会议ID为空、会议不存在或已结束、用户被禁止加入会议等
+     */
     @Override
     public void joinMeeting(String meetingId, String userId, String nickName, Integer sex, Boolean videoOpen) {
+        // 验证会议ID是否为空
         if (StringTools.isEmpty(meetingId)) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
         }
         MeetingInfo meetingInfo = this.meetingInfoMapper.selectByMeetingId(meetingId);
+        // 验证会议是否存在或是否已结束
         if (meetingInfo == null || MeetingStatusEnum.FINISHEN.getStatus().equals(meetingInfo.getStatus())) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
         }
-
+        // 检查用户是否被禁止加入会议
         this.checkMeetingJoin(meetingId, userId);
+        // 判断用户角色（主持人或普通成员）
         MemberTypeEnum memberTypeEnum = meetingInfo.getCreateUserId().equals(userId) ? MemberTypeEnum.COMPERE : MemberTypeEnum.NORMAL;
+        // 添加成员到数据库
         this.addMeetingMember(meetingId, userId, nickName, memberTypeEnum.getType());
+        // 添加成员到Redis
         this.add2Meeting(meetingId, userId, nickName, sex, videoOpen, memberTypeEnum.getType());
+        // 将用户添加到会议房间
         channelContextUtils.addMeetingRoom(meetingId, userId);
 
         MeetingJoinDto meetingJoinDto = new MeetingJoinDto();
         meetingJoinDto.setNewMember(redisComponent.getMeetingMember(meetingId, userId));
-        // 过滤掉当前用户，避免重复显示
-        List<MeetingMemberDto> meetingMemberList = redisComponent.getMeetingMemberList(meetingId);
-        List<MeetingMemberDto> filteredMeetingMemberList = meetingMemberList.stream()
-                .filter(item -> !userId.equals(item.getUserid()))
-                .collect(Collectors.toList());
-        meetingJoinDto.setMeetingMemberList(filteredMeetingMemberList);
+        meetingJoinDto.setMeetingMemberList(redisComponent.getMeetingMemberList(meetingId));
 
         MessageSendDto messageSendDto = new MessageSendDto();
         messageSendDto.setMessageType(MessageTypeEnum.ADD_MEETING_ROOM.getType());
         messageSendDto.setMessageContent(meetingJoinDto);
         messageSendDto.setMeetingId(meetingId);
         messageSendDto.setMessageSend2Type(MessageSend2TypeEnum.GROUP.getType());
+        // 发送用户加入会议的消息
         messageHandler.sendMessage(messageSendDto);
     }
 
+    /**
+     * 预加入会议处理
+     * 验证用户是否可以加入指定会议，包括会议状态、用户当前会议状态、加入密码等验证
+     *
+     * @param meetingNo 会议号
+     * @param tokenUserInfoDto 用户信息，包含用户ID和当前会议ID等
+     * @param joinPassword 加入会议的密码
+     * @return 会议ID
+     * @throws BusinessException 业务异常，如会议不存在、会议已结束、用户已有未结束会议、密码错误等
+     */
     @Override
     public String preJoinMeeting(String meetingNo, TokenUserInfoDto tokenUserInfoDto, String joinPassword) {
         String userId = tokenUserInfoDto.getUserId();
@@ -229,21 +252,27 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
         meetingInfoQuery.setStatus(MeetingStatusEnum.RUNING.getStatus());
         meetingInfoQuery.setOrderBy("create_time desc");
         List<MeetingInfo> meetingInfoList = meetingInfoMapper.selectList(meetingInfoQuery);
+        // 验证会议是否存在
         if (meetingInfoList.isEmpty()) {
             throw new BusinessException("404");
         }
         MeetingInfo meetingInfo = meetingInfoList.get(0);
+        // 验证会议是否仍在进行中
         if (!MeetingStatusEnum.RUNING.getStatus().equals(meetingInfo.getStatus())) {
             throw new BusinessException("会议已结束");
         }
+        // 验证用户是否已在其他会议中
         if (!StringTools.isEmpty(tokenUserInfoDto.getCurrentMeetingId()) && !meetingInfo.getMeetingId().equals(tokenUserInfoDto.getCurrentMeetingId())) {
             throw new BusinessException("你有未结束的会议,无法加入其他会议");
         }
+        // 检查用户是否被禁止加入会议
         checkMeetingJoin(meetingInfo.getMeetingId(), userId);
 
+        // 验证会议加入密码
         if (MeetingJoinTypeEnum.PASSWORD.getType().equals(meetingInfo.getJoinType()) && !meetingInfo.getJoinPassword().equals(joinPassword)) {
             throw new BusinessException("密码错误");
         }
+        // 更新用户当前会议ID并保存到Redis
         tokenUserInfoDto.setCurrentMeetingId(meetingInfo.getMeetingId());
         redisComponent.saveTokenUserInfoDto(tokenUserInfoDto);
         return meetingInfo.getMeetingId();
@@ -256,20 +285,32 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
         }
     }
 
+    /**
+     * 退出会议室处理
+     * 处理用户退出会议室的逻辑，包括从Redis中移除用户、发送退出消息、检查是否需要结束会议等
+     *
+     * @param tokenUserInfoDto 包含用户信息和当前会议ID的DTO
+     * @param statusEnum 退出会议的状态枚举（正常退出、被踢出、黑名单等）
+     */
     @Override
     public void exitMeetingRoom(TokenUserInfoDto tokenUserInfoDto, MeetingMemberStatusEnum statusEnum) {
+        // 获取当前会议ID
         String meetingId = tokenUserInfoDto.getCurrentMeetingId();
         if (StringTools.isEmpty(meetingId)) return;
+        // 获取用户ID
         String userId = tokenUserInfoDto.getUserId();
+        // 从会议中退出用户
         Boolean exit = redisComponent.exitMeeting(meetingId, userId, statusEnum);
         if (!exit) {
             tokenUserInfoDto.setCurrentMeetingId(null);
             redisComponent.saveTokenUserInfoDto(tokenUserInfoDto);
             return;
         }
+        // 创建退出消息发送DTO
         MessageSendDto messageSendDto = new MessageSendDto();
         messageSendDto.setMessageType(MessageTypeEnum.EXIT_MEETING_ROOM.getType());
 
+        // 获取会议成员列表
         List<MeetingMemberDto> meetingMemberDtoList = redisComponent.getMeetingMemberList(meetingId);
         MeetingExitDto exitDto = new MeetingExitDto();
         exitDto.setMeetingMemberList(meetingMemberDtoList);
@@ -279,15 +320,19 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
         messageSendDto.setMessageContent(JsonUtils.convertObj2Json(exitDto));
         messageSendDto.setMeetingId(meetingId);
         messageSendDto.setMessageSend2Type(MessageSend2TypeEnum.GROUP.getType());
+        // 发送退出会议的消息
         messageHandler.sendMessage(messageSendDto);
 
+        // 过滤出在线成员列表
         List<MeetingMemberDto> onLineMemberList =
                 meetingMemberDtoList.stream().filter(item -> MeetingMemberStatusEnum.NORMAL.getStatus().equals(item.getStatus())).collect(Collectors.toList());
 
+        // 检查在线成员是否为空，如果为空则结束会议
         if (onLineMemberList.isEmpty()) {
             finishMeeting(meetingId,tokenUserInfoDto.getUserId());
             return;
         }
+        // 如果退出状态是被踢出或黑名单，则更新数据库中的成员状态
         if (ArrayUtils.contains(new Integer[]{MeetingMemberStatusEnum.KICK_OUT.getStatus(), MeetingMemberStatusEnum.BLACKLIST.getStatus()}, statusEnum.getStatus())) {
             MeetingMember meetingMember = new MeetingMember();
             meetingMember.setStatus(statusEnum.getStatus());
@@ -298,7 +343,7 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
     @Override
     public void forceExitMeeting(TokenUserInfoDto tokenUserInfoDto, String userId, MeetingMemberStatusEnum statusEnum) {
         MeetingInfo meetingInfo = this.meetingInfoMapper.selectByMeetingId(tokenUserInfoDto.getCurrentMeetingId());
-        if (!tokenUserInfoDto.getCurrentMeetingId().equals(meetingInfo.getCreateUserId())) {
+        if (!meetingInfo.getCreateUserId().equals(tokenUserInfoDto.getUserId())) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
         }
         TokenUserInfoDto userInfoDto = this.redisComponent.getTokenUserInfoDtoByUserId(userId);
@@ -329,10 +374,9 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
         messageHandler.sendMessage(messageSendDto);
 
         //TODO预约会议状态
-
         List<MeetingMemberDto> meetingMemberList = redisComponent.getMeetingMemberList(meetingId);
         for (MeetingMemberDto meetingMemberDto : meetingMemberList) {
-            TokenUserInfoDto userInfoDto = this.redisComponent.getTokenUserInfoDtoByUserId(meetingMemberDto.getUserid());
+            TokenUserInfoDto userInfoDto = this.redisComponent.getTokenUserInfoDtoByUserId(meetingMemberDto.getUserId());
             userInfoDto.setCurrentMeetingId(null);
             redisComponent.saveTokenUserInfoDto(userInfoDto);
         }

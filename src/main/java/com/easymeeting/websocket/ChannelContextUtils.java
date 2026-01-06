@@ -64,12 +64,10 @@ public class ChannelContextUtils {
             userInfo.setLastLoginTime(System.currentTimeMillis());
             userInfoMapper.updateByUserId(userInfo, userId);
 
-            TokenUserInfoDto tokenUserInfoDto = redisComponent.getTokenUserInfoDtoByUserId(userId); //null
-            if (tokenUserInfoDto.getCurrentMeetingId() == null) {
-                return;
+            TokenUserInfoDto tokenUserInfoDto = redisComponent.getTokenUserInfoDtoByUserId(userId);
+            if (tokenUserInfoDto.getCurrentMeetingId() != null) {
+                addMeetingRoom(tokenUserInfoDto.getCurrentMeetingId(), userId);
             }
-            addMeetingRoom(tokenUserInfoDto.getCurrentMeetingId(), userId);
-
         } catch (Exception e) {
             log.error("初始化连接失败", e);
         }
@@ -122,7 +120,7 @@ public class ChannelContextUtils {
         if (MessageTypeEnum.FINIS_MESSAGE.getType().equals(messageSendDto.getMessageType())){
             List<MeetingMemberDto> meetingMemberDtoList = redisComponent.getMeetingMemberList(messageSendDto.getMeetingId());
             for (MeetingMemberDto meetingMemberDto :meetingMemberDtoList){
-                removeContextFromGroup(meetingMemberDto.getUserid(),messageSendDto.getMeetingId());
+                removeContextFromGroup(meetingMemberDto.getUserId(),messageSendDto.getMeetingId());
             }
             removeContextGroup(messageSendDto.getMeetingId());
         }
@@ -149,7 +147,7 @@ public class ChannelContextUtils {
         }
 
         ChannelGroup group = MEETING_ROOM_CONTEXT_MAP.get(meetingId);
-        if (group == null){
+        if (group != null){
             group.remove(context);
         }
     }

@@ -7,7 +7,7 @@ import java.io.Serializable;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MeetingMemberDto implements Serializable {
-    private String userid;
+    private String userId;
     private String nickName;
     private String avatar;
     private Long joinTime;
@@ -16,12 +16,12 @@ public class MeetingMemberDto implements Serializable {
     private Boolean openVideo;
     private Integer sex;
 
-    public String getUserid() {
-        return userid;
+    public String getUserId() {
+        return userId;
     }
 
-    public void setUserid(String userid) {
-        this.userid = userid;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public String getNickName() {

@@ -49,7 +49,7 @@ public class NettyWebSocketStarter implements Runnable{
                             ChannelPipeline pipeline =channel.pipeline();
                             pipeline.addLast(new HttpServerCodec());
                             pipeline.addLast(new HttpObjectAggregator(64*1024));
-                            pipeline.addLast(new IdleStateHandler(6,0,0));
+                            pipeline.addLast(new IdleStateHandler(Integer.MAX_VALUE,0,0));
                             pipeline.addLast(new HandlerHearBeat());
                             pipeline.addLast(handlerTokenValidation);
                             pipeline.addLast(new WebSocketServerProtocolHandler("/ws",null,true,6553,true,true));

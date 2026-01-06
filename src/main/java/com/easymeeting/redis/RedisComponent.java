@@ -32,16 +32,14 @@ public class RedisComponent {
     }
 
     public void saveTokenUserInfoDto(TokenUserInfoDto tokenUserInfoDto) {
-
+        // 保存 token -> TokenUserInfoDto
         redisUtils.setex(Constants.REDIS_KEY_WS_TOKEN + tokenUserInfoDto.getToken(),
                 tokenUserInfoDto,
                 Constants.REDIS_KEY_EXPIRES_DAY);
-
+        // 保存 userId -> TokenUserInfoDto
         redisUtils.setex(Constants.REDIS_KEY_WS_TOKEN_USERID + tokenUserInfoDto.getUserId(),
-                tokenUserInfoDto.getToken(),  // 这里存的是String类型的token
+                tokenUserInfoDto,
                 Constants.REDIS_KEY_EXPIRES_DAY);
-//        redisUtils.setex(Constants.REDIS_KEY_WS_TOKEN + tokenUserInfoDto.getToken(), tokenUserInfoDto, Constants.REDIS_KEY_EXPIRES_DAY);
-//        redisUtils.setex(Constants.REDIS_KEY_WS_TOKEN_USERID + tokenUserInfoDto.getUserId(), tokenUserInfoDto.getToken(), Constants.REDIS_KEY_EXPIRES_DAY);
     }
 
     public TokenUserInfoDto getTokenUserInfoDto(String token) {
@@ -49,19 +47,11 @@ public class RedisComponent {
     }
 
     public TokenUserInfoDto getTokenUserInfoDtoByUserId(String userId) {
-
-        // 步骤1：通过userId获取token（String类型）
-        String token = (String) redisUtils.get(Constants.REDIS_KEY_WS_TOKEN_USERID + userId);
-        if (token == null) {
-            return null;
-        }
-        // 步骤2：通过token获取TokenUserInfoDto对象
-        return getTokenUserInfoDto(token);
-//            return (TokenUserInfoDto) redisUtils.get(Constants.REDIS_KEY_WS_TOKEN_USERID + userId);
+        return (TokenUserInfoDto) redisUtils.get(Constants.REDIS_KEY_WS_TOKEN_USERID + userId);
     }
 
     public void add2Meeting(String meetingId, MeetingMemberDto meetingMemberDto) {
-        redisUtils.hset(Constants.REDIS_KEY_MEETING_ROOM + meetingId, meetingMemberDto.getUserid(), meetingMemberDto);
+        redisUtils.hset(Constants.REDIS_KEY_MEETING_ROOM + meetingId, meetingMemberDto.getUserId(), meetingMemberDto);
     }
 
     public List<MeetingMemberDto> getMeetingMemberList(String meetingId) {
@@ -88,7 +78,7 @@ public class RedisComponent {
 
     public void removeAllMeetingMember(String meetingId){
         List<MeetingMemberDto> meetingMemberList = getMeetingMemberList(meetingId);
-        List<String> userIdList = meetingMemberList.stream().map(MeetingMemberDto::getUserid).collect(Collectors.toList());
+        List<String> userIdList = meetingMemberList.stream().map(MeetingMemberDto::getUserId).collect(Collectors.toList());
         if (userIdList.isEmpty()){
             return;
         }
