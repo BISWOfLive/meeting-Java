@@ -2,9 +2,12 @@ package com.easymeeting.service;
 
 import java.util.List;
 
+import com.easymeeting.entity.dto.TokenUserInfoDto;
 import com.easymeeting.entity.query.MeetingMemberQuery;
 import com.easymeeting.entity.po.MeetingMember;
 import com.easymeeting.entity.vo.PaginationResultVO;
+
+import javax.validation.constraints.NotEmpty;
 
 
 /**

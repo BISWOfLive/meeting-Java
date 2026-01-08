@@ -51,6 +51,12 @@ public class ABaseController {
         return vo;
     }
 
+    /**
+     * 获取当前请求的用户令牌信息
+     * 从HTTP请求头中提取token，然后通过Redis组件获取对应的用户信息
+     *
+     * @return TokenUserInfoDto 包含用户令牌信息的数据传输对象，如果token无效或未找到则可能返回null
+     */
     protected TokenUserInfoDto getTokenUserInfo(){
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
         String token = request.getHeader("token");

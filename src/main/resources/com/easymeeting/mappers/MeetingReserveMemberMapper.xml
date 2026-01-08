@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.easymeeting.mappers.MeetingReserveMemberMapper">
+
+	<!--实体映射-->
+	<resultMap id="base_result_map" type="com.easymeeting.entity.po.MeetingReserveMember">
+		<!--会议ID（联合主键1）-->
+		<result column="meeting_id" property="meetingId"  />
+		<!--被邀请用户ID（联合主键2）-->
+		<result column="invite_user_id" property="inviteUserId"  />
+	</resultMap>
+
+
+	<!-- 通用查询结果列-->
+	<sql id="base_column_list">
+		 m.meeting_id,m.invite_user_id
+	</sql>
+
+	<sql id="base_condition_filed">
+			<if test="query.meetingId != null and query.meetingId!=''">
+				 and  m.meeting_id = #{query.meetingId}
+			</if>
+			<if test="query.inviteUserId != null and query.inviteUserId!=''">
+				 and  m.invite_user_id = #{query.inviteUserId}
+			</if>
+	</sql>
+
+	<!-- 通用查询条件列-->
+	<sql id="query_condition">
+	 <where>
+			<include refid="base_condition_filed" />
+			<if test="query.meetingIdFuzzy!= null  and query.meetingIdFuzzy!=''">
+				 and  m.meeting_id like concat('%', #{query.meetingIdFuzzy}, '%')
+			</if>
+			<if test="query.inviteUserIdFuzzy!= null  and query.inviteUserIdFuzzy!=''">
+				 and  m.invite_user_id like concat('%', #{query.inviteUserIdFuzzy}, '%')
+			</if>
+	 </where>
+	</sql>
+
+	<!-- 查询集合-->
+	<select id="selectList" resultMap="base_result_map" >
+		 SELECT <include refid="base_column_list" /> FROM meeting_reserve_member m <include refid="query_condition" />
+		 <if test="query.orderBy!=null">
+			 order by ${query.orderBy}
+		 </if>
+		 <if test="query.simplePage!=null">
+			 limit #{query.simplePage.start},#{query.simplePage.end}
+		 </if>
+	</select>
+
+	<!-- 查询数量-->
+	<select id="selectCount" resultType="java.lang.Integer" >
+		 SELECT count(1) FROM meeting_reserve_member m <include refid="query_condition" />
+	</select>
+
+	<!-- 插入 （匹配有值的字段）-->
+	<insert id="insert" parameterType="com.easymeeting.entity.po.MeetingReserveMember">
+		 INSERT INTO meeting_reserve_member
+		 <trim prefix="(" suffix=")" suffixOverrides="," >
+			<if test="bean.meetingId != null">
+				 meeting_id,
+			</if>
+			<if test="bean.inviteUserId != null">
+				 invite_user_id,
+			</if>
+		 </trim>
+		 <trim prefix="values (" suffix=")" suffixOverrides="," >
+			<if test="bean.meetingId!=null">
+				 #{bean.meetingId},
+			</if>
+			<if test="bean.inviteUserId!=null">
+				 #{bean.inviteUserId},
+			</if>
+		 </trim>
+	</insert>
+
+	<!-- 插入或者更新 （匹配有值的字段）-->
+	<insert id="insertOrUpdate" parameterType="com.easymeeting.entity.po.MeetingReserveMember">
+		 INSERT INTO meeting_reserve_member
+		 <trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="bean.meetingId != null">
+				 meeting_id,
+			</if>
+			<if test="bean.inviteUserId != null">
+				 invite_user_id,
+			</if>
+		 </trim>
+		 <trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="bean.meetingId!=null">
+				 #{bean.meetingId},
+			</if>
+			<if test="bean.inviteUserId!=null">
+				 #{bean.inviteUserId},
+			</if>
+		 </trim>
+		 on DUPLICATE key update 
+		 <trim prefix="" suffix="" suffixOverrides=",">
+			<if test="bean.meetingId!=null">
+				 meeting_id = VALUES(meeting_id),
+			</if>
+			<if test="bean.inviteUserId!=null">
+				 invite_user_id = VALUES(invite_user_id),
+			</if>
+		 </trim>
+	</insert>
+
+	<!-- 添加 （批量插入）-->
+	<insert id="insertBatch" parameterType="com.easymeeting.entity.po.MeetingReserveMember">
+		 INSERT INTO meeting_reserve_member(
+			 meeting_id,
+			 invite_user_id
+		 )values
+		 <foreach collection="list" item="item" separator=",">
+			 (
+				 #{item.meetingId},
+				 #{item.inviteUserId}
+			 )
+		 </foreach>
+	</insert>
+
+	<!-- 批量新增修改 （批量插入）-->
+	<insert id="insertOrUpdateBatch" parameterType="com.easymeeting.entity.po.MeetingReserveMember">
+		 INSERT INTO meeting_reserve_member(
+			 meeting_id,
+			 invite_user_id
+		 )values
+		 <foreach collection="list" item="item" separator=",">
+			 (
+				 #{item.meetingId},
+				 #{item.inviteUserId}
+			 )
+		 </foreach>
+			on DUPLICATE key update 
+			meeting_id = VALUES(meeting_id),
+			invite_user_id = VALUES(invite_user_id)
+	</insert>
+
+	<!--多条件修改-->
+	<update id="updateByParam" parameterType="com.easymeeting.entity.query.MeetingReserveMemberQuery">
+		 UPDATE meeting_reserve_member m
+ 		 <set> 
+			<if test="bean.meetingId != null">
+				 meeting_id = #{bean.meetingId},
+			</if>
+			<if test="bean.inviteUserId != null">
+				 invite_user_id = #{bean.inviteUserId},
+			</if>
+ 		 </set>
+ 		 <include refid="query_condition" />
+	</update>
+
+	<!--多条件删除-->
+	<delete id="deleteByParam">
+		 delete m from meeting_reserve_member m
+ 		 <include refid="query_condition" />
+	</delete>
+
+	<!-- 根据MeetingIdAndInviteUserId修改-->
+	<update id="updateByMeetingIdAndInviteUserId" parameterType="com.easymeeting.entity.po.MeetingReserveMember">
+		 UPDATE meeting_reserve_member
+ 		 <set> 
+ 		 </set>
+ 		 where meeting_id=#{meetingId} and invite_user_id=#{inviteUserId}
+	</update>
+
+	<!-- 根据MeetingIdAndInviteUserId删除-->
+	<delete id="deleteByMeetingIdAndInviteUserId">
+		delete from meeting_reserve_member where meeting_id=#{meetingId} and invite_user_id=#{inviteUserId}
+	</delete>
+
+	<!-- 根据PrimaryKey获取对象-->
+	<select id="selectByMeetingIdAndInviteUserId" resultMap="base_result_map" >
+		select <include refid="base_column_list" /> from meeting_reserve_member m where meeting_id=#{meetingId} and invite_user_id=#{inviteUserId}
+	</select>
+
+</mapper>

@@ -7,7 +7,7 @@ import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MeetingExitDto implements Serializable {
-    public String exitUserId;
+    private String exitUserId;
     private List<MeetingMemberDto> meetingMemberList;
     private Integer exitStatus;
 

@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.easymeeting.mappers.MeetingReserveMapper">
+
+    <!--实体映射-->
+    <resultMap id="base_result_map" type="com.easymeeting.entity.po.MeetingReserve">
+        <!--会议ID（主键）-->
+        <result column="meeting_id" property="meetingId"/>
+        <!--会议名称-->
+        <result column="meeting_name" property="meetingName"/>
+        <!--参与类型-->
+        <result column="join_type" property="joinType"/>
+        <!--参与密码-->
+        <result column="join_password" property="joinPassword"/>
+        <!--会议时长-->
+        <result column="duration" property="duration"/>
+        <!--开始时间-->
+        <result column="start_time" property="startTime"/>
+        <!--创建时间-->
+        <result column="create_time" property="createTime"/>
+        <!--创建用户ID-->
+        <result column="create_user_id" property="createUserId"/>
+        <!--状态-->
+        <result column="status" property="status"/>
+    </resultMap>
+
+
+    <!-- 通用查询结果列-->
+    <sql id="base_column_list">
+        m
+        .
+        meeting_id
+        ,m.meeting_name,m.join_type,m.join_password,m.duration,
+		 m.start_time,m.create_time,m.create_user_id,m.status
+    </sql>
+
+    <sql id="base_condition_filed">
+        <if test="query.meetingId != null and query.meetingId!=''">
+            and m.meeting_id = #{query.meetingId}
+        </if>
+        <if test="query.meetingName != null and query.meetingName!=''">
+            and m.meeting_name = #{query.meetingName}
+        </if>
+        <if test="query.joinType != null">
+            and m.join_type = #{query.joinType}
+        </if>
+        <if test="query.joinPassword != null and query.joinPassword!=''">
+            and m.join_password = #{query.joinPassword}
+        </if>
+        <if test="query.duration != null">
+            and m.duration = #{query.duration}
+        </if>
+        <if test="query.startTime != null and query.startTime!=''">
+            <![CDATA[ and  m.start_time=str_to_date(#{query.startTime}, '%Y-%m-%d') ]]>
+        </if>
+        <if test="query.createTime != null and query.createTime!=''">
+            <![CDATA[ and  m.create_time=str_to_date(#{query.createTime}, '%Y-%m-%d') ]]>
+        </if>
+        <if test="query.createUserId != null and query.createUserId!=''">
+            and m.create_user_id = #{query.createUserId}
+        </if>
+        <if test="query.status != null">
+            and m.status = #{query.status}
+        </if>
+    </sql>
+
+    <!-- 通用查询条件列-->
+    <sql id="query_condition">
+        <where>
+            <include refid="base_condition_filed"/>
+            <if test="query.meetingIdFuzzy!= null  and query.meetingIdFuzzy!=''">
+                and m.meeting_id like concat('%', #{query.meetingIdFuzzy}, '%')
+            </if>
+            <if test="query.meetingNameFuzzy!= null  and query.meetingNameFuzzy!=''">
+                and m.meeting_name like concat('%', #{query.meetingNameFuzzy}, '%')
+            </if>
+            <if test="query.joinPasswordFuzzy!= null  and query.joinPasswordFuzzy!=''">
+                and m.join_password like concat('%', #{query.joinPasswordFuzzy}, '%')
+            </if>
+            <if test="query.startTimeStart!= null and query.startTimeStart!=''">
+                <![CDATA[ and  m.start_time>=str_to_date(#{query.startTimeStart}, '%Y-%m-%d') ]]>
+            </if>
+            <if test="query.startTimeEnd!= null and query.startTimeEnd!=''">
+                <![CDATA[ and  m.start_time< date_sub(str_to_date(#{query.startTimeEnd},'%Y-%m-%d'),interval -1 day) ]]>
+            </if>
+            <if test="query.createTimeStart!= null and query.createTimeStart!=''">
+                <![CDATA[ and  m.create_time>=str_to_date(#{query.createTimeStart}, '%Y-%m-%d') ]]>
+            </if>
+            <if test="query.createTimeEnd!= null and query.createTimeEnd!=''">
+                <![CDATA[ and  m.create_time< date_sub(str_to_date(#{query.createTimeEnd},'%Y-%m-%d'),interval -1 day) ]]>
+            </if>
+            <if test="query.createUserIdFuzzy!= null  and query.createUserIdFuzzy!=''">
+                and m.create_user_id like concat('%', #{query.createUserIdFuzzy}, '%')
+            </if>
+            <if test="query.userId != null and query.userId != '' ">
+                and meeting_id in (select meeting_id from meeting_reserve_member where invite_user_id =#{query.userId})
+            </if>
+        </where>
+    </sql>
+
+    <!-- 查询集合-->
+    <select id="selectList" resultMap="base_result_map">
+        SELECT
+        <include refid="base_column_list"/>
+        <if test="query.queryUserInfo">
+            ,u.nick_name nickName
+        </if>
+        FROM meeting_reserve m
+        <if test="query.queryUserInfo">
+            left join user_info u on u.user_id = m.create_user_id
+        </if>
+        <include refid="query_condition"/>
+        <if test="query.orderBy!=null">
+            order by ${query.orderBy}
+        </if>
+        <if test="query.simplePage!=null">
+            limit #{query.simplePage.start},#{query.simplePage.end}
+        </if>
+    </select>
+
+    <!-- 查询数量-->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT count(1) FROM meeting_reserve m
+        <include refid="query_condition"/>
+    </select>
+
+    <!-- 插入 （匹配有值的字段）-->
+    <insert id="insert" parameterType="com.easymeeting.entity.po.MeetingReserve">
+        INSERT INTO meeting_reserve
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.meetingId != null">
+                meeting_id,
+            </if>
+            <if test="bean.meetingName != null">
+                meeting_name,
+            </if>
+            <if test="bean.joinType != null">
+                join_type,
+            </if>
+            <if test="bean.joinPassword != null">
+                join_password,
+            </if>
+            <if test="bean.duration != null">
+                duration,
+            </if>
+            <if test="bean.startTime != null">
+                start_time,
+            </if>
+            <if test="bean.createTime != null">
+                create_time,
+            </if>
+            <if test="bean.createUserId != null">
+                create_user_id,
+            </if>
+            <if test="bean.status != null">
+                status,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.meetingId!=null">
+                #{bean.meetingId},
+            </if>
+            <if test="bean.meetingName!=null">
+                #{bean.meetingName},
+            </if>
+            <if test="bean.joinType!=null">
+                #{bean.joinType},
+            </if>
+            <if test="bean.joinPassword!=null">
+                #{bean.joinPassword},
+            </if>
+            <if test="bean.duration!=null">
+                #{bean.duration},
+            </if>
+            <if test="bean.startTime!=null">
+                #{bean.startTime},
+            </if>
+            <if test="bean.createTime!=null">
+                #{bean.createTime},
+            </if>
+            <if test="bean.createUserId!=null">
+                #{bean.createUserId},
+            </if>
+            <if test="bean.status!=null">
+                #{bean.status},
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 插入或者更新 （匹配有值的字段）-->
+    <insert id="insertOrUpdate" parameterType="com.easymeeting.entity.po.MeetingReserve">
+        INSERT INTO meeting_reserve
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.meetingId != null">
+                meeting_id,
+            </if>
+            <if test="bean.meetingName != null">
+                meeting_name,
+            </if>
+            <if test="bean.joinType != null">
+                join_type,
+            </if>
+            <if test="bean.joinPassword != null">
+                join_password,
+            </if>
+            <if test="bean.duration != null">
+                duration,
+            </if>
+            <if test="bean.startTime != null">
+                start_time,
+            </if>
+            <if test="bean.createTime != null">
+                create_time,
+            </if>
+            <if test="bean.createUserId != null">
+                create_user_id,
+            </if>
+            <if test="bean.status != null">
+                status,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.meetingId!=null">
+                #{bean.meetingId},
+            </if>
+            <if test="bean.meetingName!=null">
+                #{bean.meetingName},
+            </if>
+            <if test="bean.joinType!=null">
+                #{bean.joinType},
+            </if>
+            <if test="bean.joinPassword!=null">
+                #{bean.joinPassword},
+            </if>
+            <if test="bean.duration!=null">
+                #{bean.duration},
+            </if>
+            <if test="bean.startTime!=null">
+                #{bean.startTime},
+            </if>
+            <if test="bean.createTime!=null">
+                #{bean.createTime},
+            </if>
+            <if test="bean.createUserId!=null">
+                #{bean.createUserId},
+            </if>
+            <if test="bean.status!=null">
+                #{bean.status},
+            </if>
+        </trim>
+        on DUPLICATE key update
+        <trim prefix="" suffix="" suffixOverrides=",">
+            <if test="bean.meetingId!=null">
+                meeting_id = VALUES(meeting_id),
+            </if>
+            <if test="bean.meetingName!=null">
+                meeting_name = VALUES(meeting_name),
+            </if>
+            <if test="bean.joinType!=null">
+                join_type = VALUES(join_type),
+            </if>
+            <if test="bean.joinPassword!=null">
+                join_password = VALUES(join_password),
+            </if>
+            <if test="bean.duration!=null">
+                duration = VALUES(duration),
+            </if>
+            <if test="bean.startTime!=null">
+                start_time = VALUES(start_time),
+            </if>
+            <if test="bean.createTime!=null">
+                create_time = VALUES(create_time),
+            </if>
+            <if test="bean.createUserId!=null">
+                create_user_id = VALUES(create_user_id),
+            </if>
+            <if test="bean.status!=null">
+                status = VALUES(status),
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 添加 （批量插入）-->
+    <insert id="insertBatch" parameterType="com.easymeeting.entity.po.MeetingReserve">
+        INSERT INTO meeting_reserve(
+        meeting_id,
+        meeting_name,
+        join_type,
+        join_password,
+        duration,
+        start_time,
+        create_time,
+        create_user_id,
+        status
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.meetingId},
+            #{item.meetingName},
+            #{item.joinType},
+            #{item.joinPassword},
+            #{item.duration},
+            #{item.startTime},
+            #{item.createTime},
+            #{item.createUserId},
+            #{item.status}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 批量新增修改 （批量插入）-->
+    <insert id="insertOrUpdateBatch" parameterType="com.easymeeting.entity.po.MeetingReserve">
+        INSERT INTO meeting_reserve(
+        meeting_id,
+        meeting_name,
+        join_type,
+        join_password,
+        duration,
+        start_time,
+        create_time,
+        create_user_id,
+        status
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.meetingId},
+            #{item.meetingName},
+            #{item.joinType},
+            #{item.joinPassword},
+            #{item.duration},
+            #{item.startTime},
+            #{item.createTime},
+            #{item.createUserId},
+            #{item.status}
+            )
+        </foreach>
+        on DUPLICATE key update
+        meeting_id = VALUES(meeting_id),
+        meeting_name = VALUES(meeting_name),
+        join_type = VALUES(join_type),
+        join_password = VALUES(join_password),
+        duration = VALUES(duration),
+        start_time = VALUES(start_time),
+        create_time = VALUES(create_time),
+        create_user_id = VALUES(create_user_id),
+        status = VALUES(status)
+    </insert>
+
+    <!--多条件修改-->
+    <update id="updateByParam" parameterType="com.easymeeting.entity.query.MeetingReserveQuery">
+        UPDATE meeting_reserve m
+        <set>
+            <if test="bean.meetingId != null">
+                meeting_id = #{bean.meetingId},
+            </if>
+            <if test="bean.meetingName != null">
+                meeting_name = #{bean.meetingName},
+            </if>
+            <if test="bean.joinType != null">
+                join_type = #{bean.joinType},
+            </if>
+            <if test="bean.joinPassword != null">
+                join_password = #{bean.joinPassword},
+            </if>
+            <if test="bean.duration != null">
+                duration = #{bean.duration},
+            </if>
+            <if test="bean.startTime != null">
+                start_time = #{bean.startTime},
+            </if>
+            <if test="bean.createTime != null">
+                create_time = #{bean.createTime},
+            </if>
+            <if test="bean.createUserId != null">
+                create_user_id = #{bean.createUserId},
+            </if>
+            <if test="bean.status != null">
+                status = #{bean.status},
+            </if>
+        </set>
+        <include refid="query_condition"/>
+    </update>
+
+    <!--多条件删除-->
+    <delete id="deleteByParam">
+        delete m from meeting_reserve m
+        <include refid="query_condition"/>
+    </delete>
+
+    <!-- 根据MeetingId修改-->
+    <update id="updateByMeetingId" parameterType="com.easymeeting.entity.po.MeetingReserve">
+        UPDATE meeting_reserve
+        <set>
+            <if test="bean.meetingName != null">
+                meeting_name = #{bean.meetingName},
+            </if>
+            <if test="bean.joinType != null">
+                join_type = #{bean.joinType},
+            </if>
+            <if test="bean.joinPassword != null">
+                join_password = #{bean.joinPassword},
+            </if>
+            <if test="bean.duration != null">
+                duration = #{bean.duration},
+            </if>
+            <if test="bean.startTime != null">
+                start_time = #{bean.startTime},
+            </if>
+            <if test="bean.createTime != null">
+                create_time = #{bean.createTime},
+            </if>
+            <if test="bean.createUserId != null">
+                create_user_id = #{bean.createUserId},
+            </if>
+            <if test="bean.status != null">
+                status = #{bean.status},
+            </if>
+        </set>
+        where meeting_id=#{meetingId}
+    </update>
+
+    <!-- 根据MeetingId删除-->
+    <delete id="deleteByMeetingId">
+        delete
+        from meeting_reserve
+        where meeting_id = #{meetingId}
+    </delete>
+
+    <!-- 根据PrimaryKey获取对象-->
+    <select id="selectByMeetingId" resultMap="base_result_map">
+        select
+        <include refid="base_column_list"/>
+        from meeting_reserve m where meeting_id=#{meetingId}
+    </select>
+
+
+</mapper>

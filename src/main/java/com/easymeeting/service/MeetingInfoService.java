@@ -11,6 +11,7 @@ import com.easymeeting.entity.query.MeetingInfoQuery;
 import com.easymeeting.entity.po.MeetingInfo;
 import com.easymeeting.entity.vo.PaginationResultVO;
 
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
 
@@ -87,4 +88,6 @@ public interface MeetingInfoService {
 	void forceExitMeeting(TokenUserInfoDto tokenUserInfoDto,String userId , MeetingMemberStatusEnum statusEnum);
 
 	void finishMeeting(String meetingId, String userId);
+
+    void reserveJoinMeeting(@NotEmpty String meetingId, TokenUserInfoDto tokenUserInfoDto, String joinPassword);
 }

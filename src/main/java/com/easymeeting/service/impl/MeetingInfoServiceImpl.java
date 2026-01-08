@@ -4,22 +4,25 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.annotation.Resource;
+
 import com.easymeeting.entity.dto.*;
 import com.easymeeting.entity.enums.*;
 import com.easymeeting.entity.po.MeetingMember;
-import com.easymeeting.entity.query.MeetingMemberQuery;
+import com.easymeeting.entity.po.MeetingReserve;
+import com.easymeeting.entity.po.MeetingReserveMember;
+import com.easymeeting.entity.query.*;
 import com.easymeeting.exception.BusinessException;
 import com.easymeeting.mappers.MeetingMemberMapper;
+import com.easymeeting.mappers.MeetingReserveMapper;
+import com.easymeeting.mappers.MeetingReserveMemberMapper;
 import com.easymeeting.redis.RedisComponent;
 import com.easymeeting.utils.JsonUtils;
 import com.easymeeting.websocket.ChannelContextUtils;
 import com.easymeeting.websocket.message.MessageHandler;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.stereotype.Service;
-import com.easymeeting.entity.query.MeetingInfoQuery;
 import com.easymeeting.entity.po.MeetingInfo;
 import com.easymeeting.entity.vo.PaginationResultVO;
-import com.easymeeting.entity.query.SimplePage;
 import com.easymeeting.mappers.MeetingInfoMapper;
 import com.easymeeting.service.MeetingInfoService;
 import com.easymeeting.utils.StringTools;
@@ -47,6 +50,11 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
     @Resource
     private MeetingMemberMapper<MeetingMember, MeetingMemberQuery> meetingMemberMapper;
 
+    @Resource
+    private MeetingReserveMapper<MeetingReserve, MeetingReserveQuery> meetingReserveMapper;
+
+    @Resource
+    private MeetingReserveMemberMapper<MeetingReserveMember, MeetingReserveMemberQuery> meetingReserveMemberMapper;
 
     /**
      * 根据条件查询列表
@@ -193,9 +201,9 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
      * 将用户添加到指定会议中，包括验证会议状态、检查加入权限、添加成员信息、发送加入消息等
      *
      * @param meetingId 会议ID
-     * @param userId 用户ID
-     * @param nickName 用户昵称
-     * @param sex 用户性别
+     * @param userId    用户ID
+     * @param nickName  用户昵称
+     * @param sex       用户性别
      * @param videoOpen 视频是否开启
      * @throws BusinessException 业务异常，如会议ID为空、会议不存在或已结束、用户被禁止加入会议等
      */
@@ -238,9 +246,9 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
      * 预加入会议处理
      * 验证用户是否可以加入指定会议，包括会议状态、用户当前会议状态、加入密码等验证
      *
-     * @param meetingNo 会议号
+     * @param meetingNo        会议号
      * @param tokenUserInfoDto 用户信息，包含用户ID和当前会议ID等
-     * @param joinPassword 加入会议的密码
+     * @param joinPassword     加入会议的密码
      * @return 会议ID
      * @throws BusinessException 业务异常，如会议不存在、会议已结束、用户已有未结束会议、密码错误等
      */
@@ -290,7 +298,7 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
      * 处理用户退出会议室的逻辑，包括从Redis中移除用户、发送退出消息、检查是否需要结束会议等
      *
      * @param tokenUserInfoDto 包含用户信息和当前会议ID的DTO
-     * @param statusEnum 退出会议的状态枚举（正常退出、被踢出、黑名单等）
+     * @param statusEnum       退出会议的状态枚举（正常退出、被踢出、黑名单等）
      */
     @Override
     public void exitMeetingRoom(TokenUserInfoDto tokenUserInfoDto, MeetingMemberStatusEnum statusEnum) {
@@ -329,8 +337,15 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
 
         // 检查在线成员是否为空，如果为空则结束会议
         if (onLineMemberList.isEmpty()) {
-            finishMeeting(meetingId,tokenUserInfoDto.getUserId());
-            return;
+            MeetingReserve meetingReserve = meetingReserveMapper.selectByMeetingId(meetingId);
+            if (meetingReserve == null){
+                finishMeeting(meetingId,null);
+                return;
+            }
+            if (System.currentTimeMillis() > meetingReserve.getStartTime().getTime() + meetingReserve.getDuration() * 60 * 1000){
+                finishMeeting(meetingId,null);
+                return;
+            }
         }
         // 如果退出状态是被踢出或黑名单，则更新数据库中的成员状态
         if (ArrayUtils.contains(new Integer[]{MeetingMemberStatusEnum.KICK_OUT.getStatus(), MeetingMemberStatusEnum.BLACKLIST.getStatus()}, statusEnum.getStatus())) {
@@ -347,7 +362,7 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
         }
         TokenUserInfoDto userInfoDto = this.redisComponent.getTokenUserInfoDtoByUserId(userId);
-        exitMeetingRoom(userInfoDto,statusEnum);
+        exitMeetingRoom(userInfoDto, statusEnum);
     }
 
     @Override
@@ -359,13 +374,13 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
     //提供更全面的事务保护
     public void finishMeeting(String meetingId, String userId) {
         MeetingInfo meetingInfo = this.meetingInfoMapper.selectByMeetingId(meetingId);
-        if (userId != null && !meetingInfo.getCreateUserId().equals(userId)){
+        if (userId != null && !meetingInfo.getCreateUserId().equals(userId)) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
         }
         MeetingInfo updataInfo = new MeetingInfo();
         updataInfo.setStatus(MeetingStatusEnum.FINISHEN.getStatus());
         updataInfo.setEndTime(new Date());
-        meetingInfoMapper.updateByMeetingId(updataInfo,meetingId);
+        meetingInfoMapper.updateByMeetingId(updataInfo, meetingId);
 
         MessageSendDto messageSendDto = new MessageSendDto();
         messageSendDto.setMessageSend2Type(MessageSend2TypeEnum.GROUP.getType());
@@ -373,7 +388,17 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
         messageSendDto.setMessageId(meetingId);
         messageHandler.sendMessage(messageSendDto);
 
-        //TODO预约会议状态
+        MeetingMember meetingMember = new MeetingMember();
+        meetingMember.setMeetingStatus(MeetingStatusEnum.FINISHEN.getStatus());
+        MeetingMemberQuery meetingMemberQuery = new MeetingMemberQuery();
+        meetingMemberQuery.setMeetingId(meetingId);
+        meetingMemberMapper.updateByParam(meetingMember,meetingMemberQuery);
+
+        MeetingReserve updataMeetingReserve = new MeetingReserve();
+        updataMeetingReserve.setStatus(MeetingReserveStatusEnum.FINISHED.getStatus());
+        updataMeetingReserve.setMeetingId(meetingId);
+        meetingReserveMapper.updateByMeetingId(updataMeetingReserve,meetingId);
+
         List<MeetingMemberDto> meetingMemberList = redisComponent.getMeetingMemberList(meetingId);
         for (MeetingMemberDto meetingMemberDto : meetingMemberList) {
             TokenUserInfoDto userInfoDto = this.redisComponent.getTokenUserInfoDtoByUserId(meetingMemberDto.getUserId());
@@ -381,5 +406,42 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
             redisComponent.saveTokenUserInfoDto(userInfoDto);
         }
         redisComponent.removeAllMeetingMember(meetingId);
+    }
+
+    @Override
+    public void reserveJoinMeeting(String meetingId, TokenUserInfoDto tokenUserInfoDto, String joinPassword) {
+        String userId = tokenUserInfoDto.getUserId();
+        if (!StringTools.isEmpty(tokenUserInfoDto.getCurrentMeetingId()) && !meetingId.equals(tokenUserInfoDto.getCurrentMeetingId())) {
+            throw new BusinessException("你有未结束的会议无法加入其他会议");
+        }
+        checkMeetingJoin(meetingId, userId);
+        MeetingReserve meetingReserve = meetingReserveMapper.selectByMeetingId(meetingId);
+        if (meetingReserve == null){
+            throw  new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        MeetingReserveMember member = meetingReserveMemberMapper.selectByMeetingIdAndInviteUserId(meetingId, tokenUserInfoDto.getUserId());
+        if (member == null){
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        if (MeetingJoinTypeEnum.PASSWORD.getType().equals(meetingReserve.getJoinType()) && !meetingReserve.getJoinPassword().equals(joinPassword)){
+            throw new BusinessException("密码错误");
+        }
+        MeetingInfo meetingInfo = meetingInfoMapper.selectByMeetingId(meetingId);
+        if (meetingInfo == null){
+            meetingInfo = new MeetingInfo();
+            meetingInfo.setMeetingName(meetingReserve.getMeetingName());
+            meetingInfo.setMeetingNo(StringTools.getMeetingNoOrMeetingId());
+            meetingInfo.setJoinType(meetingReserve.getJoinType());
+            meetingInfo.setJoinPassword(meetingReserve.getJoinPassword());
+            Date curDate = new Date();
+            meetingInfo.setCreateTime(curDate);
+            meetingInfo.setMeetingId(meetingId);
+            meetingInfo.setStartTime(curDate);
+            meetingInfo.setCreateUserId(meetingReserve.getCreateUserId());
+            meetingInfo.setStatus(MeetingStatusEnum.RUNING.getStatus());
+            meetingInfoMapper.insert(meetingInfo);
+        }
+        tokenUserInfoDto.setCurrentMeetingId(meetingId);
+        redisComponent.saveTokenUserInfoDto(tokenUserInfoDto);
     }
 }
