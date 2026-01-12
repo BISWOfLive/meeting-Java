@@ -332,10 +332,8 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
         messageHandler.sendMessage(messageSendDto);
 
         // 过滤出在线成员列表
-        List<MeetingMemberDto> onLineMemberList =
-                meetingMemberDtoList.stream().filter(item -> MeetingMemberStatusEnum.NORMAL.getStatus().equals(item.getStatus())).collect(Collectors.toList());
+        List<MeetingMemberDto> onLineMemberList = meetingMemberDtoList.stream().filter(item -> MeetingMemberStatusEnum.NORMAL.getStatus().equals(item.getStatus())).collect(Collectors.toList());
 
-        // 检查在线成员是否为空，如果为空则结束会议
         if (onLineMemberList.isEmpty()) {
             MeetingReserve meetingReserve = meetingReserveMapper.selectByMeetingId(meetingId);
             if (meetingReserve == null){
@@ -347,6 +345,7 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
                 return;
             }
         }
+
         // 如果退出状态是被踢出或黑名单，则更新数据库中的成员状态
         if (ArrayUtils.contains(new Integer[]{MeetingMemberStatusEnum.KICK_OUT.getStatus(), MeetingMemberStatusEnum.BLACKLIST.getStatus()}, statusEnum.getStatus())) {
             MeetingMember meetingMember = new MeetingMember();
@@ -377,10 +376,10 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
         if (userId != null && !meetingInfo.getCreateUserId().equals(userId)) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
         }
-        MeetingInfo updataInfo = new MeetingInfo();
-        updataInfo.setStatus(MeetingStatusEnum.FINISHEN.getStatus());
-        updataInfo.setEndTime(new Date());
-        meetingInfoMapper.updateByMeetingId(updataInfo, meetingId);
+        MeetingInfo updateInfo = new MeetingInfo();
+        updateInfo.setStatus(MeetingStatusEnum.FINISHEN.getStatus());
+        updateInfo.setEndTime(new Date());
+        meetingInfoMapper.updateByMeetingId(updateInfo, meetingId);
 
         MessageSendDto messageSendDto = new MessageSendDto();
         messageSendDto.setMessageSend2Type(MessageSend2TypeEnum.GROUP.getType());

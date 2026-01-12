@@ -12,13 +12,8 @@ public enum MessageTypeEnum {
     USER_CONTACT_APPLY(8,"好友申请消息"),
     INVITE_MEMBER_MEETING(9,"邀请入会"),
     FORCE_OFF_LINE(10,"强制下线"),
-    MEETING_USER_VIDEO_CHANGE(11,"用户视频状态改变");
-
-
-
-
-
-
+    MEETING_USER_VIDEO_CHANGE(11,"用户视频状态改变"),
+    USER_CONTACT_DEAL_WITH(12,"处理好友请求");
 
     private Integer type;
     private String desc;

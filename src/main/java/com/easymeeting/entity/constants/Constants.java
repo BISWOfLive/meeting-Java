@@ -4,7 +4,7 @@ public class Constants {
 
     public static final String ZERo_STR = "0";
     public static final Integer ZERO = 0;
-    public static final Integer oNE = 1;
+    public static final Integer ONE = 1;
     public static final Integer LENGTH_10 = 10;
     public static final Integer LENGTH_12 = 12;
     public static final Integer LENGTH_20 = 20;
