@@ -2,9 +2,13 @@ package com.easymeeting.service;
 
 import java.util.List;
 
+import com.easymeeting.entity.dto.TokenUserInfoDto;
 import com.easymeeting.entity.query.UserContactApplyQuery;
 import com.easymeeting.entity.po.UserContactApply;
 import com.easymeeting.entity.vo.PaginationResultVO;
+
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 
 
 /**
@@ -90,4 +94,7 @@ public interface UserContactApplyService {
     Integer saveUserContactApply(UserContactApply userContactApply);
 
 	void dealWithApply(String applyUserId,String userId,String nickName,Integer status);
+
+	void delCount(String userId,String contactId,Integer status);
+
 }

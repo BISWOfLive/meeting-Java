@@ -1,4 +1,5 @@
 package com.easymeeting.utils;
+
 import com.easymeeting.entity.constants.Constants;
 import com.easymeeting.exception.BusinessException;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -54,8 +55,29 @@ public class StringTools {
         }
         return false;
     }
-    public static final String getRandomNumber(Integer count){return RandomStringUtils.random(count,false,true);}
-    public static final String getRandomString(Integer count){return RandomStringUtils.random(count,false,true);}
-    public static  String encodeByMD5(String originString){return StringTools.isEmpty(originString) ? null : DigestUtils.md5Hex(originString);}
-    public static final String getMeetingNoOrMeetingId(){return StringTools.getRandomNumber(Constants.LENGTH_10);}
+
+    public static String getImageThumbnail(String fileName) {
+        return fileName + Constants.IMAGE_THUMBNAIL_SUFFIX + Constants.IMAGE_SUFFIX;
+    }
+
+    public static String getFileSuffix(String fileName) {
+        String suffix = fileName.substring(fileName.lastIndexOf("."));
+        return suffix;
+    }
+
+    public static final String getRandomNumber(Integer count) {
+        return RandomStringUtils.random(count, false, true);
+    }
+
+    public static final String getRandomString(Integer count) {
+        return RandomStringUtils.random(count, false, true);
+    }
+
+    public static String encodeByMD5(String originString) {
+        return StringTools.isEmpty(originString) ? null : DigestUtils.md5Hex(originString);
+    }
+
+    public static final String getMeetingNoOrMeetingId() {
+        return StringTools.getRandomNumber(Constants.LENGTH_10);
+    }
 }

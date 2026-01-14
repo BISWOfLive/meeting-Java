@@ -66,22 +66,30 @@ public class RedisComponent {
         return (MeetingMemberDto) redisUtils.hget(Constants.REDIS_KEY_MEETING_ROOM + meetingId, userId);
     }
 
-    public Boolean exitMeeting(String meetingId,String userId, MeetingMemberStatusEnum statusEnum) {
+    public Boolean exitMeeting(String meetingId, String userId, MeetingMemberStatusEnum statusEnum) {
         MeetingMemberDto meetingMemberDto = getMeetingMember(meetingId, userId);
-        if (meetingMemberDto == null){
+        if (meetingMemberDto == null) {
             return false;
         }
         meetingMemberDto.setStatus(statusEnum.getStatus());
-        add2Meeting(meetingId,meetingMemberDto);
+        add2Meeting(meetingId, meetingMemberDto);
         return true;
     }
 
-    public void removeAllMeetingMember(String meetingId){
+    public void removeAllMeetingMember(String meetingId) {
         List<MeetingMemberDto> meetingMemberList = getMeetingMemberList(meetingId);
         List<String> userIdList = meetingMemberList.stream().map(MeetingMemberDto::getUserId).collect(Collectors.toList());
-        if (userIdList.isEmpty()){
+        if (userIdList.isEmpty()) {
             return;
         }
-        redisUtils.hdel(Constants.REDIS_KEY_MEETING_ROOM+meetingId,userIdList.toArray(new String[userIdList.size()]));
+        redisUtils.hdel(Constants.REDIS_KEY_MEETING_ROOM + meetingId, userIdList.toArray(new String[userIdList.size()]));
+    }
+
+    public void addInviteInfo(String meetingId, String userId) {
+        redisUtils.setex(Constants.REDIS_KEY_INVITE_MEMBER + userId + meetingId, meetingId, Constants.REDIS_KEY_EXPIRES_ONE_MIN * 5);
+    }
+
+    public String getInviteInfo(String meetingId, String userId) {
+       return (String) redisUtils.get(Constants.REDIS_KEY_INVITE_MEMBER + userId + meetingId);
     }
 }

@@ -6,12 +6,15 @@ import java.util.List;
 import javax.annotation.Resource;
 
 import com.easymeeting.entity.dto.MessageSendDto;
+import com.easymeeting.entity.dto.TokenUserInfoDto;
 import com.easymeeting.entity.enums.*;
 import com.easymeeting.entity.po.UserContact;
 import com.easymeeting.entity.query.UserContactQuery;
 import com.easymeeting.exception.BusinessException;
 import com.easymeeting.mappers.UserContactMapper;
 import com.easymeeting.websocket.message.MessageHandler;
+import jodd.util.ArraysUtil;
+import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -255,4 +258,17 @@ public class UserContactApplyServiceImpl implements UserContactApplyService {
 		messageSendDto.setMessageContent(status);
 		messageHandler.sendMessage(messageSendDto);
 	}
+
+	@Override
+	public void delCount(String userId, String contactId, Integer status) {
+		if (!ArrayUtils.contains(new Integer[]{UserContactStatusEnum.BLACKLIST.getStatus(),UserContactStatusEnum.DEL.getStatus()},status)){
+			throw new BusinessException(ResponseCodeEnum.CODE_600);
+		}
+		UserContact userContact = new UserContact();
+		userContact.setLastUpdateTime(new Date());
+		userContact.setStatus(status);
+		this.userContactMapper.updateByUserIdAndContactId(userContact,userId,contactId);
+	}
+
+
 }

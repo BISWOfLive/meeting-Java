@@ -23,7 +23,7 @@ import java.io.Serializable;
 
         private long sendTime;
 
-        private String messageId;
+        private long messageId;
 
         private Integer status;
 
@@ -97,11 +97,11 @@ import java.io.Serializable;
             this.sendTime = sendTime;
         }
 
-        public String getMessageId() {
+        public long getMessageId() {
             return messageId;
         }
 
-        public void setMessageId(String messageId) {
+        public void setMessageId(long messageId) {
             this.messageId = messageId;
         }
 

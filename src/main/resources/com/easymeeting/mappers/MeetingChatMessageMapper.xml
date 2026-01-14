@@ -1,0 +1,587 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.easymeeting.mappers.MeetingChatMessageMapper">
+
+    <!--实体映射-->
+    <resultMap id="base_result_map" type="com.easymeeting.entity.po.MeetingChatMessage">
+        <!--消息ID-->
+        <result column="message_id" property="messageId"/>
+        <!--会议ID-->
+        <result column="meeting_id" property="meetingId"/>
+        <!--消息类型-->
+        <result column="message_type" property="messageType"/>
+        <!--消息内容-->
+        <result column="message_content" property="messageContent"/>
+        <!--发送用户ID-->
+        <result column="send_user_id" property="sendUserId"/>
+        <!--发送用户昵称-->
+        <result column="send_user_nick_name" property="sendUserNickName"/>
+        <!--发送时间-->
+        <result column="send_time" property="sendTime"/>
+        <!--接收类型-->
+        <result column="receive_type" property="receiveType"/>
+        <!--接收用户ID-->
+        <result column="receive_user_id" property="receiveUserId"/>
+        <!--文件大小-->
+        <result column="file_size" property="fileSize"/>
+        <!--文件名-->
+        <result column="file_name" property="fileName"/>
+        <!--文件类型-->
+        <result column="file_type" property="fileType"/>
+        <!--文件后缀-->
+        <result column="file_suffix" property="fileSuffix"/>
+        <!--状态-->
+        <result column="status" property="status"/>
+    </resultMap>
+
+
+    <!-- 通用查询结果列-->
+    <sql id="base_column_list">
+        m
+        .
+        message_id
+        ,m.meeting_id,m.message_type,m.message_content,m.send_user_id,
+		 m.send_user_nick_name,m.send_time,m.receive_type,m.receive_user_id,m.file_size,
+		 m.file_name,m.file_type,m.file_suffix,m.status
+    </sql>
+
+    <sql id="base_condition_filed">
+        <if test="query.messageId != null">
+            and m.message_id = #{query.messageId}
+        </if>
+        <if test="query.meetingId != null and query.meetingId!=''">
+            and m.meeting_id = #{query.meetingId}
+        </if>
+        <if test="query.messageType != null">
+            and m.message_type = #{query.messageType}
+        </if>
+        <if test="query.messageContent != null and query.messageContent!=''">
+            and m.message_content = #{query.messageContent}
+        </if>
+        <if test="query.sendUserId != null and query.sendUserId!=''">
+            and m.send_user_id = #{query.sendUserId}
+        </if>
+        <if test="query.sendUserNickName != null and query.sendUserNickName!=''">
+            and m.send_user_nick_name = #{query.sendUserNickName}
+        </if>
+        <if test="query.sendTime != null">
+            and m.send_time = #{query.sendTime}
+        </if>
+        <if test="query.receiveType != null">
+            and m.receive_type = #{query.receiveType}
+        </if>
+        <if test="query.receiveUserId != null and query.receiveUserId!=''">
+            and m.receive_user_id = #{query.receiveUserId}
+        </if>
+        <if test="query.fileSize != null">
+            and m.file_size = #{query.fileSize}
+        </if>
+        <if test="query.fileName != null and query.fileName!=''">
+            and m.file_name = #{query.fileName}
+        </if>
+        <if test="query.fileType != null">
+            and m.file_type = #{query.fileType}
+        </if>
+        <if test="query.fileSuffix != null and query.fileSuffix!=''">
+            and m.file_suffix = #{query.fileSuffix}
+        </if>
+        <if test="query.status != null">
+            and m.status = #{query.status}
+        </if>
+    </sql>
+
+    <!-- 通用查询条件列-->
+    <sql id="query_condition">
+        <where>
+            <include refid="base_condition_filed"/>
+            <if test="query.meetingIdFuzzy!= null  and query.meetingIdFuzzy!=''">
+                and m.meeting_id like concat('%', #{query.meetingIdFuzzy}, '%')
+            </if>
+            <if test="query.messageContentFuzzy!= null  and query.messageContentFuzzy!=''">
+                and m.message_content like concat('%', #{query.messageContentFuzzy}, '%')
+            </if>
+            <if test="query.sendUserIdFuzzy!= null  and query.sendUserIdFuzzy!=''">
+                and m.send_user_id like concat('%', #{query.sendUserIdFuzzy}, '%')
+            </if>
+            <if test="query.sendUserNickNameFuzzy!= null  and query.sendUserNickNameFuzzy!=''">
+                and m.send_user_nick_name like concat('%', #{query.sendUserNickNameFuzzy}, '%')
+            </if>
+            <if test="query.receiveUserIdFuzzy!= null  and query.receiveUserIdFuzzy!=''">
+                and m.receive_user_id like concat('%', #{query.receiveUserIdFuzzy}, '%')
+            </if>
+            <if test="query.fileNameFuzzy!= null  and query.fileNameFuzzy!=''">
+                and m.file_name like concat('%', #{query.fileNameFuzzy}, '%')
+            </if>
+            <if test="query.fileSuffixFuzzy!= null  and query.fileSuffixFuzzy!=''">
+                and m.file_suffix like concat('%', #{query.fileSuffixFuzzy}, '%')
+            </if>
+            <if test="query.userId != null">
+                and (m.receive_user_id = #{query.userId} and m.receive_type=1 or m.receive_type=0)
+            </if>
+            <if test="query.maxMessageId!=null">
+                <![CDATA[ and m.meeting_id < #{query.maxMessageId} ]]>
+            </if>
+        </where>
+    </sql>
+
+    <!-- 查询集合-->
+    <select id="selectList" resultMap="base_result_map">
+        SELECT
+        <include refid="base_column_list"/>
+        FROM ${tableName} m
+        <include refid="query_condition"/>
+        <if test="query.orderBy!=null">
+            order by ${query.orderBy}
+        </if>
+        <if test="query.simplePage!=null">
+            limit #{query.simplePage.start},#{query.simplePage.end}
+        </if>
+    </select>
+
+    <!-- 查询数量-->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT count(1) FROM ${tableName} m
+        <include refid="query_condition"/>
+    </select>
+
+    <!-- 插入 （匹配有值的字段）-->
+    <insert id="insert" parameterType="com.easymeeting.entity.po.MeetingChatMessage">
+        INSERT INTO ${tableName}
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.messageId != null">
+                message_id,
+            </if>
+            <if test="bean.meetingId != null">
+                meeting_id,
+            </if>
+            <if test="bean.messageType != null">
+                message_type,
+            </if>
+            <if test="bean.messageContent != null">
+                message_content,
+            </if>
+            <if test="bean.sendUserId != null">
+                send_user_id,
+            </if>
+            <if test="bean.sendUserNickName != null">
+                send_user_nick_name,
+            </if>
+            <if test="bean.sendTime != null">
+                send_time,
+            </if>
+            <if test="bean.receiveType != null">
+                receive_type,
+            </if>
+            <if test="bean.receiveUserId != null">
+                receive_user_id,
+            </if>
+            <if test="bean.fileSize != null">
+                file_size,
+            </if>
+            <if test="bean.fileName != null">
+                file_name,
+            </if>
+            <if test="bean.fileType != null">
+                file_type,
+            </if>
+            <if test="bean.fileSuffix != null">
+                file_suffix,
+            </if>
+            <if test="bean.status != null">
+                status,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.messageId!=null">
+                #{bean.messageId},
+            </if>
+            <if test="bean.meetingId!=null">
+                #{bean.meetingId},
+            </if>
+            <if test="bean.messageType!=null">
+                #{bean.messageType},
+            </if>
+            <if test="bean.messageContent!=null">
+                #{bean.messageContent},
+            </if>
+            <if test="bean.sendUserId!=null">
+                #{bean.sendUserId},
+            </if>
+            <if test="bean.sendUserNickName!=null">
+                #{bean.sendUserNickName},
+            </if>
+            <if test="bean.sendTime!=null">
+                #{bean.sendTime},
+            </if>
+            <if test="bean.receiveType!=null">
+                #{bean.receiveType},
+            </if>
+            <if test="bean.receiveUserId!=null">
+                #{bean.receiveUserId},
+            </if>
+            <if test="bean.fileSize!=null">
+                #{bean.fileSize},
+            </if>
+            <if test="bean.fileName!=null">
+                #{bean.fileName},
+            </if>
+            <if test="bean.fileType!=null">
+                #{bean.fileType},
+            </if>
+            <if test="bean.fileSuffix!=null">
+                #{bean.fileSuffix},
+            </if>
+            <if test="bean.status!=null">
+                #{bean.status},
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 插入或者更新 （匹配有值的字段）-->
+    <insert id="insertOrUpdate" parameterType="com.easymeeting.entity.po.MeetingChatMessage">
+        INSERT INTO ${tableName}
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.messageId != null">
+                message_id,
+            </if>
+            <if test="bean.meetingId != null">
+                meeting_id,
+            </if>
+            <if test="bean.messageType != null">
+                message_type,
+            </if>
+            <if test="bean.messageContent != null">
+                message_content,
+            </if>
+            <if test="bean.sendUserId != null">
+                send_user_id,
+            </if>
+            <if test="bean.sendUserNickName != null">
+                send_user_nick_name,
+            </if>
+            <if test="bean.sendTime != null">
+                send_time,
+            </if>
+            <if test="bean.receiveType != null">
+                receive_type,
+            </if>
+            <if test="bean.receiveUserId != null">
+                receive_user_id,
+            </if>
+            <if test="bean.fileSize != null">
+                file_size,
+            </if>
+            <if test="bean.fileName != null">
+                file_name,
+            </if>
+            <if test="bean.fileType != null">
+                file_type,
+            </if>
+            <if test="bean.fileSuffix != null">
+                file_suffix,
+            </if>
+            <if test="bean.status != null">
+                status,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.messageId!=null">
+                #{bean.messageId},
+            </if>
+            <if test="bean.meetingId!=null">
+                #{bean.meetingId},
+            </if>
+            <if test="bean.messageType!=null">
+                #{bean.messageType},
+            </if>
+            <if test="bean.messageContent!=null">
+                #{bean.messageContent},
+            </if>
+            <if test="bean.sendUserId!=null">
+                #{bean.sendUserId},
+            </if>
+            <if test="bean.sendUserNickName!=null">
+                #{bean.sendUserNickName},
+            </if>
+            <if test="bean.sendTime!=null">
+                #{bean.sendTime},
+            </if>
+            <if test="bean.receiveType!=null">
+                #{bean.receiveType},
+            </if>
+            <if test="bean.receiveUserId!=null">
+                #{bean.receiveUserId},
+            </if>
+            <if test="bean.fileSize!=null">
+                #{bean.fileSize},
+            </if>
+            <if test="bean.fileName!=null">
+                #{bean.fileName},
+            </if>
+            <if test="bean.fileType!=null">
+                #{bean.fileType},
+            </if>
+            <if test="bean.fileSuffix!=null">
+                #{bean.fileSuffix},
+            </if>
+            <if test="bean.status!=null">
+                #{bean.status},
+            </if>
+        </trim>
+        on DUPLICATE key update
+        <trim prefix="" suffix="" suffixOverrides=",">
+            <if test="bean.messageId!=null">
+                message_id = VALUES(message_id),
+            </if>
+            <if test="bean.meetingId!=null">
+                meeting_id = VALUES(meeting_id),
+            </if>
+            <if test="bean.messageType!=null">
+                message_type = VALUES(message_type),
+            </if>
+            <if test="bean.messageContent!=null">
+                message_content = VALUES(message_content),
+            </if>
+            <if test="bean.sendUserId!=null">
+                send_user_id = VALUES(send_user_id),
+            </if>
+            <if test="bean.sendUserNickName!=null">
+                send_user_nick_name = VALUES(send_user_nick_name),
+            </if>
+            <if test="bean.sendTime!=null">
+                send_time = VALUES(send_time),
+            </if>
+            <if test="bean.receiveType!=null">
+                receive_type = VALUES(receive_type),
+            </if>
+            <if test="bean.receiveUserId!=null">
+                receive_user_id = VALUES(receive_user_id),
+            </if>
+            <if test="bean.fileSize!=null">
+                file_size = VALUES(file_size),
+            </if>
+            <if test="bean.fileName!=null">
+                file_name = VALUES(file_name),
+            </if>
+            <if test="bean.fileType!=null">
+                file_type = VALUES(file_type),
+            </if>
+            <if test="bean.fileSuffix!=null">
+                file_suffix = VALUES(file_suffix),
+            </if>
+            <if test="bean.status!=null">
+                status = VALUES(status),
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 添加 （批量插入）-->
+    <insert id="insertBatch" parameterType="com.easymeeting.entity.po.MeetingChatMessage">
+        INSERT INTO ${tableName}(
+        message_id,
+        meeting_id,
+        message_type,
+        message_content,
+        send_user_id,
+        send_user_nick_name,
+        send_time,
+        receive_type,
+        receive_user_id,
+        file_size,
+        file_name,
+        file_type,
+        file_suffix,
+        status
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.messageId},
+            #{item.meetingId},
+            #{item.messageType},
+            #{item.messageContent},
+            #{item.sendUserId},
+            #{item.sendUserNickName},
+            #{item.sendTime},
+            #{item.receiveType},
+            #{item.receiveUserId},
+            #{item.fileSize},
+            #{item.fileName},
+            #{item.fileType},
+            #{item.fileSuffix},
+            #{item.status}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 批量新增修改 （批量插入）-->
+    <insert id="insertOrUpdateBatch" parameterType="com.easymeeting.entity.po.MeetingChatMessage">
+        INSERT INTO ${tableName}(
+        message_id,
+        meeting_id,
+        message_type,
+        message_content,
+        send_user_id,
+        send_user_nick_name,
+        send_time,
+        receive_type,
+        receive_user_id,
+        file_size,
+        file_name,
+        file_type,
+        file_suffix,
+        status
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.messageId},
+            #{item.meetingId},
+            #{item.messageType},
+            #{item.messageContent},
+            #{item.sendUserId},
+            #{item.sendUserNickName},
+            #{item.sendTime},
+            #{item.receiveType},
+            #{item.receiveUserId},
+            #{item.fileSize},
+            #{item.fileName},
+            #{item.fileType},
+            #{item.fileSuffix},
+            #{item.status}
+            )
+        </foreach>
+        on DUPLICATE key update
+        message_id = VALUES(message_id),
+        meeting_id = VALUES(meeting_id),
+        message_type = VALUES(message_type),
+        message_content = VALUES(message_content),
+        send_user_id = VALUES(send_user_id),
+        send_user_nick_name = VALUES(send_user_nick_name),
+        send_time = VALUES(send_time),
+        receive_type = VALUES(receive_type),
+        receive_user_id = VALUES(receive_user_id),
+        file_size = VALUES(file_size),
+        file_name = VALUES(file_name),
+        file_type = VALUES(file_type),
+        file_suffix = VALUES(file_suffix),
+        status = VALUES(status)
+    </insert>
+
+    <!--多条件修改-->
+    <update id="updateByParam" parameterType="com.easymeeting.entity.query.MeetingChatMessageQuery">
+        UPDATE ${tableName} m
+        <set>
+            <if test="bean.messageId != null">
+                message_id = #{bean.messageId},
+            </if>
+            <if test="bean.meetingId != null">
+                meeting_id = #{bean.meetingId},
+            </if>
+            <if test="bean.messageType != null">
+                message_type = #{bean.messageType},
+            </if>
+            <if test="bean.messageContent != null">
+                message_content = #{bean.messageContent},
+            </if>
+            <if test="bean.sendUserId != null">
+                send_user_id = #{bean.sendUserId},
+            </if>
+            <if test="bean.sendUserNickName != null">
+                send_user_nick_name = #{bean.sendUserNickName},
+            </if>
+            <if test="bean.sendTime != null">
+                send_time = #{bean.sendTime},
+            </if>
+            <if test="bean.receiveType != null">
+                receive_type = #{bean.receiveType},
+            </if>
+            <if test="bean.receiveUserId != null">
+                receive_user_id = #{bean.receiveUserId},
+            </if>
+            <if test="bean.fileSize != null">
+                file_size = #{bean.fileSize},
+            </if>
+            <if test="bean.fileName != null">
+                file_name = #{bean.fileName},
+            </if>
+            <if test="bean.fileType != null">
+                file_type = #{bean.fileType},
+            </if>
+            <if test="bean.fileSuffix != null">
+                file_suffix = #{bean.fileSuffix},
+            </if>
+            <if test="bean.status != null">
+                status = #{bean.status},
+            </if>
+        </set>
+        <include refid="query_condition"/>
+    </update>
+
+    <!--多条件删除-->
+    <delete id="deleteByParam">
+        delete m from ${tableName} m
+        <include refid="query_condition"/>
+    </delete>
+
+    <!-- 根据MessageId修改-->
+    <update id="updateByMessageId" parameterType="com.easymeeting.entity.po.MeetingChatMessage">
+        UPDATE ${tableName}
+        <set>
+            <if test="bean.meetingId != null">
+                meeting_id = #{bean.meetingId},
+            </if>
+            <if test="bean.messageType != null">
+                message_type = #{bean.messageType},
+            </if>
+            <if test="bean.messageContent != null">
+                message_content = #{bean.messageContent},
+            </if>
+            <if test="bean.sendUserId != null">
+                send_user_id = #{bean.sendUserId},
+            </if>
+            <if test="bean.sendUserNickName != null">
+                send_user_nick_name = #{bean.sendUserNickName},
+            </if>
+            <if test="bean.sendTime != null">
+                send_time = #{bean.sendTime},
+            </if>
+            <if test="bean.receiveType != null">
+                receive_type = #{bean.receiveType},
+            </if>
+            <if test="bean.receiveUserId != null">
+                receive_user_id = #{bean.receiveUserId},
+            </if>
+            <if test="bean.fileSize != null">
+                file_size = #{bean.fileSize},
+            </if>
+            <if test="bean.fileName != null">
+                file_name = #{bean.fileName},
+            </if>
+            <if test="bean.fileType != null">
+                file_type = #{bean.fileType},
+            </if>
+            <if test="bean.fileSuffix != null">
+                file_suffix = #{bean.fileSuffix},
+            </if>
+            <if test="bean.status != null">
+                status = #{bean.status},
+            </if>
+        </set>
+        where message_id=#{messageId}
+    </update>
+
+    <!-- 根据MessageId删除-->
+    <delete id="deleteByMessageId">
+        delete
+        from ${tableName}
+        where message_id = #{messageId}
+    </delete>
+
+    <!-- 根据PrimaryKey获取对象-->
+    <select id="selectByMessageId" resultMap="base_result_map">
+        select
+        <include refid="base_column_list"/>
+        from ${tableName} m where message_id=#{messageId}
+    </select>
+
+</mapper>

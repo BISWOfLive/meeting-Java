@@ -2,7 +2,7 @@ package com.easymeeting.entity.constants;
 
 public class Constants {
 
-    public static final String ZERo_STR = "0";
+    public static final String ZERO_STR = "0";
     public static final Integer ZERO = 0;
     public static final Integer ONE = 1;
     public static final Integer LENGTH_10 = 10;
@@ -30,7 +30,7 @@ public class Constants {
 
     public static final String MEETING_NO_PRIFIX= "M";
     public static final String IMAGE_THUMBNAIL_SUFFIX = "_thumbnail";
-    public static final String VIDEo_CODE_HEVC= "hevc";
+    public static final String VIDEO_CODE_HEVC= "hevc";
     public static final String APP_UPDATE_FOLDER = "/app/";
     public static final String APP_NAME = "EasyMeetingSetup.";
     public static final String APP_EXE_SUFFIX = ".exe";

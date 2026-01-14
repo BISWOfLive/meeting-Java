@@ -64,6 +64,12 @@ public class ABaseController {
         return userTokenInfoDTO;
     }
 
+    protected TokenUserInfoDto getTokenUserInfo(String token){
+        TokenUserInfoDto userTokenInfoDTO = redisComponent.getTokenUserInfoDto(token);
+        return userTokenInfoDTO;
+    }
+
+
     protected void resetTokenUserInfo(TokenUserInfoDto tokenUserInfoDto){
         redisComponent.saveTokenUserInfoDto(tokenUserInfoDto);
     }

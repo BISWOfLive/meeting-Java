@@ -297,4 +297,29 @@ public class MeetingInfoController extends ABaseController {
         meetingInfoService.reserveJoinMeeting(meetingId,tokenUserInfoDto,joinPassword);
         return getSuccessResponseVO(null);
     }
+
+    //会议邀请成员
+    @RequestMapping("/inviteMember")
+    @GlobalInterceptor
+    public ResponseVO inviteMember(@NotEmpty String selectContactIds) {
+        TokenUserInfoDto tokenUserInfo = getTokenUserInfo();
+        meetingInfoService.inviteMember(tokenUserInfo,selectContactIds);
+        return getSuccessResponseVO(null);
+    }
+
+    @RequestMapping("/acceptInvite")
+    @GlobalInterceptor
+    public ResponseVO acceptInvite(@NotEmpty String meetingId) {
+        TokenUserInfoDto tokenUserInfo = getTokenUserInfo();
+        meetingInfoService.acceptInvite(tokenUserInfo,meetingId);
+        return getSuccessResponseVO(null);
+    }
+
+    @RequestMapping("/sendOpenVideoChangeMessage")
+    @GlobalInterceptor
+    public ResponseVO sendOpenVideoChangeMessage(@NotNull Boolean openVideo) {
+        TokenUserInfoDto tokenUserInfo = getTokenUserInfo();
+        meetingInfoService.updateMemberOpenVideo(tokenUserInfo.getCurrentMeetingId(),tokenUserInfo.getUserId(),openVideo);
+        return getSuccessResponseVO(null);
+    }
 }

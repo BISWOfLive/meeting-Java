@@ -3,6 +3,7 @@ package com.easymeeting.controller;
 
 import com.easymeeting.annotition.GlobalInterceptor;
 import com.easymeeting.entity.dto.TokenUserInfoDto;
+import com.easymeeting.entity.enums.UserContactApplyStatusEnum;
 import com.easymeeting.entity.enums.UserContactStatusEnum;
 import com.easymeeting.entity.po.UserContact;
 import com.easymeeting.entity.po.UserContactApply;
@@ -10,9 +11,12 @@ import com.easymeeting.entity.query.UserContactApplyQuery;
 import com.easymeeting.entity.query.UserContactQuery;
 import com.easymeeting.entity.vo.ResponseVO;
 import com.easymeeting.entity.vo.UserInfoVO4Search;
+import com.easymeeting.service.MeetingInfoService;
 import com.easymeeting.service.UserContactApplyService;
 import com.easymeeting.service.UserContactService;
+import com.easymeeting.service.impl.MeetingInfoServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,12 +37,9 @@ public class UserContactController extends ABaseController{
 
     @Resource
     private UserContactApplyService userContactApplyService;
+    @Autowired
+    private MeetingInfoServiceImpl meetingInfoService;
 
-    @RequestMapping("/loadContactApplyDealWithCount")
-    @GlobalInterceptor
-    public ResponseVO checkVersion() {
-        return getSuccessResponseVO(0);
-    }
 
     @RequestMapping("/searchContact")
     @GlobalInterceptor
@@ -90,5 +91,24 @@ public class UserContactController extends ABaseController{
         applyQuery.setOrderBy("last_apply_time desc");
         List<UserContactApply> applyList = userContactApplyService.findListByParam(applyQuery);
         return getSuccessResponseVO(applyList);
+    }
+
+    @RequestMapping("/delContact")
+    @GlobalInterceptor
+    public ResponseVO delContact(@NotEmpty String contactId, @NotNull Integer status) {
+        TokenUserInfoDto tokenUserInfo = getTokenUserInfo();
+        userContactApplyService.delCount(tokenUserInfo.getUserId(),contactId,status);
+        return getSuccessResponseVO(null);
+    }
+
+    @RequestMapping("/loadContactApplyDealWithCount")
+    @GlobalInterceptor
+    public ResponseVO loadContactApplyDealWithCount() {
+        TokenUserInfoDto tokenUserInfo = getTokenUserInfo();
+        UserContactApplyQuery applyQuery = new UserContactApplyQuery();
+        applyQuery.setReceiveUserId(tokenUserInfo.getUserId());
+        applyQuery.setStatus(UserContactApplyStatusEnum.INIT.getStatus());
+        Integer count = userContactApplyService.findCountByParam(applyQuery);
+        return getSuccessResponseVO(count);
     }
 }
