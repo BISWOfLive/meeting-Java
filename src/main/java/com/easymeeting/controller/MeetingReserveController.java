@@ -38,7 +38,8 @@ public class MeetingReserveController extends ABaseController {
         TokenUserInfoDto tokenUserInfo = getTokenUserInfo();
         meetingReserve.setCreateUserId(tokenUserInfo.getUserId());
         meetingReserveService.createMeetingReserve(meetingReserve);
-        return getSuccessResponseVO(null);
+        // 返回预约对象（含 meetingNo），前端拿到会议号后可通过 preJoinMeeting 加入会议
+        return getSuccessResponseVO(meetingReserve);
     }
 
 

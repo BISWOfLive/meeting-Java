@@ -1,11 +1,16 @@
 package com.easymeeting.service;
 
+import java.io.IOException;
 import java.util.List;
 
 import com.easymeeting.entity.query.UserInfoQuery;
 import com.easymeeting.entity.po.UserInfo;
 import com.easymeeting.entity.vo.PaginationResultVO;
 import com.easymeeting.entity.vo.UserInfoVo;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 
 
 /**
@@ -92,4 +97,11 @@ public interface UserInfoService {
 
 	UserInfoVo login(String email, String password);
 
+	void updateUserInfo(MultipartFile avatar, UserInfo userInfo) throws IOException;
+
+	void updatePassword(String userId, String oldPwd, String newPwd);
+
+	void updateUserStatus(@NotNull Integer status, @NotEmpty String userId);
+
+	void forceOffLine(String userId);
 }

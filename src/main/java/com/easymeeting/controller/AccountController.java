@@ -1,5 +1,8 @@
 package com.easymeeting.controller;
 
+import com.easymeeting.entity.dto.SysSettingDto;
+import com.easymeeting.entity.dto.TokenUserInfoDto;
+import com.easymeeting.entity.po.UserInfo;
 import com.easymeeting.entity.vo.ResponseVO;
 import com.easymeeting.entity.vo.checkCodeVO;
 import com.easymeeting.entity.vo.UserInfoVo;
@@ -11,10 +14,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
 import javax.annotation.Resource;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.io.IOException;
 
 /**
  * Controller
@@ -76,4 +83,27 @@ public class AccountController extends ABaseController {
             redisComponent.cleanCheckCode(checkCodeKey);
         }
     }
+    @RequestMapping("/getSysSetting")
+    public ResponseVO getSysSetting(){
+        SysSettingDto sysSetting = redisComponent.getSysSetting();
+        return getSuccessResponseVO(sysSetting);
+    }
+
+    @RequestMapping("/updateUserInfo")
+    public ResponseVO updateUserInfo(MultipartFile avatar, @NotEmpty String nickName, @NotNull Integer sex) throws IOException {
+        TokenUserInfoDto tokenUserInfo = getTokenUserInfo();
+        UserInfo userInfo = new UserInfo();
+        userInfo.setNickName(nickName);
+        userInfo.setSex(sex);
+        userInfo.setUserId(tokenUserInfo.getUserId());
+        userInfoService.updateUserInfo(avatar,userInfo);
+        return getSuccessResponseVO(null);
+    }
+    @RequestMapping("/updatePassword")
+    public ResponseVO updatePassword(@NotEmpty String oldPassword,@NotEmpty String password){
+        TokenUserInfoDto tokenUserInfo = getTokenUserInfo();
+        userInfoService.updatePassword(tokenUserInfo.getUserId(),oldPassword,password);
+        return getSuccessResponseVO(null);
+    }
+
 }

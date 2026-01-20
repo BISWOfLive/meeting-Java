@@ -7,6 +7,8 @@
     <resultMap id="base_result_map" type="com.easymeeting.entity.po.MeetingReserve">
         <!--会议ID（主键）-->
         <result column="meeting_id" property="meetingId"/>
+        <!--会议号（预约时生成，用于通过 preJoinMeeting 加入会议）-->
+        <result column="meeting_no" property="meetingNo"/>
         <!--会议名称-->
         <result column="meeting_name" property="meetingName"/>
         <!--参与类型-->
@@ -31,7 +33,7 @@
         m
         .
         meeting_id
-        ,m.meeting_name,m.join_type,m.join_password,m.duration,
+        ,m.meeting_no,m.meeting_name,m.join_type,m.join_password,m.duration,
 		 m.start_time,m.create_time,m.create_user_id,m.status
     </sql>
 
@@ -132,6 +134,9 @@
             <if test="bean.meetingId != null">
                 meeting_id,
             </if>
+            <if test="bean.meetingNo != null">
+                meeting_no,
+            </if>
             <if test="bean.meetingName != null">
                 meeting_name,
             </if>
@@ -160,6 +165,9 @@
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="bean.meetingId!=null">
                 #{bean.meetingId},
+            </if>
+            <if test="bean.meetingNo!=null">
+                #{bean.meetingNo},
             </if>
             <if test="bean.meetingName!=null">
                 #{bean.meetingName},
@@ -195,6 +203,9 @@
             <if test="bean.meetingId != null">
                 meeting_id,
             </if>
+            <if test="bean.meetingNo != null">
+                meeting_no,
+            </if>
             <if test="bean.meetingName != null">
                 meeting_name,
             </if>
@@ -223,6 +234,9 @@
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="bean.meetingId!=null">
                 #{bean.meetingId},
+            </if>
+            <if test="bean.meetingNo!=null">
+                #{bean.meetingNo},
             </if>
             <if test="bean.meetingName!=null">
                 #{bean.meetingName},
@@ -253,6 +267,9 @@
         <trim prefix="" suffix="" suffixOverrides=",">
             <if test="bean.meetingId!=null">
                 meeting_id = VALUES(meeting_id),
+            </if>
+            <if test="bean.meetingNo!=null">
+                meeting_no = VALUES(meeting_no),
             </if>
             <if test="bean.meetingName!=null">
                 meeting_name = VALUES(meeting_name),
@@ -285,6 +302,7 @@
     <insert id="insertBatch" parameterType="com.easymeeting.entity.po.MeetingReserve">
         INSERT INTO meeting_reserve(
         meeting_id,
+        meeting_no,
         meeting_name,
         join_type,
         join_password,
@@ -297,6 +315,7 @@
         <foreach collection="list" item="item" separator=",">
             (
             #{item.meetingId},
+            #{item.meetingNo},
             #{item.meetingName},
             #{item.joinType},
             #{item.joinPassword},
@@ -313,6 +332,7 @@
     <insert id="insertOrUpdateBatch" parameterType="com.easymeeting.entity.po.MeetingReserve">
         INSERT INTO meeting_reserve(
         meeting_id,
+        meeting_no,
         meeting_name,
         join_type,
         join_password,
@@ -325,6 +345,7 @@
         <foreach collection="list" item="item" separator=",">
             (
             #{item.meetingId},
+            #{item.meetingNo},
             #{item.meetingName},
             #{item.joinType},
             #{item.joinPassword},
@@ -392,6 +413,9 @@
     <update id="updateByMeetingId" parameterType="com.easymeeting.entity.po.MeetingReserve">
         UPDATE meeting_reserve
         <set>
+            <if test="bean.meetingNo != null">
+                meeting_no = #{bean.meetingNo},
+            </if>
             <if test="bean.meetingName != null">
                 meeting_name = #{bean.meetingName},
             </if>

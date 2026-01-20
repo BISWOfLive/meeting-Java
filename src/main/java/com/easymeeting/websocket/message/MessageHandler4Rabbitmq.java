@@ -48,28 +48,20 @@ public class MessageHandler4Rabbitmq implements MessageHandler{
      */
     @Override
     public void listenMessage() {
-        // 创建RabbitMQ连接工厂
         factory = new ConnectionFactory();
         factory.setHost("localhost");
         factory.setPort(5672);
         try {
-            // 通过工厂创建连接
             connection = factory.newConnection();
-            // 通过连接创建信道（Channel是RabbitMQ操作的基本单位）
             channel = connection.createChannel();
-            // 声明一个fanout类型的交换机（广播模式，将消息发送到所有绑定的队列）
             channel.exchangeDeclare(EXCHANGE_NAEM, BuiltinExchangeType.FANOUT);
-            // 声明一个临时队列，并获取队列名称
             String queueName = channel.queueDeclare().getQueue();
             // 将队列绑定到交换机上，路由键为空字符串
             channel.queueBind(queueName,EXCHANGE_NAEM,"");
-
-            // 设置消息自动确认为false，需要手动确认消息处理完成
             Boolean autoAck = false;
             // 定义消息投递回调函数，用于处理接收到的消息
             DeliverCallback deliverCallback = (consumerTag,dellivery)->{
                 try {
-                    // 从消息投递对象中获取消息体，并转换为UTF-8字符串
                     String message = new String(dellivery.getBody(), "UTF-8");
                     log.info("rabbitmq收到消息:{}",message);
                     // 将消息转换为MessageSendDto对象并发送到WebSocket客户端

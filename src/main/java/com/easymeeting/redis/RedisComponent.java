@@ -2,8 +2,10 @@ package com.easymeeting.redis;
 
 import com.easymeeting.entity.constants.Constants;
 import com.easymeeting.entity.dto.MeetingMemberDto;
+import com.easymeeting.entity.dto.SysSettingDto;
 import com.easymeeting.entity.dto.TokenUserInfoDto;
 import com.easymeeting.entity.enums.MeetingMemberStatusEnum;
+import com.easymeeting.utils.StringTools;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -91,5 +93,23 @@ public class RedisComponent {
 
     public String getInviteInfo(String meetingId, String userId) {
        return (String) redisUtils.get(Constants.REDIS_KEY_INVITE_MEMBER + userId + meetingId);
+    }
+
+    public void clearTokenByUserId(String userId){
+        String token = (String) redisUtils.get(Constants.REDIS_KEY_WS_TOKEN + userId);
+        if(!StringTools.isEmpty(token)){
+            redisUtils.delete(Constants.REDIS_KEY_WS_TOKEN + token);
+        }
+        redisUtils.delete(Constants.REDIS_KEY_WS_TOKEN_USERID + userId);
+    }
+
+    public void saveSysSetting(SysSettingDto sysSettingDto){
+        redisUtils.set(Constants.REDIS_KEY_SYS_SETTING, sysSettingDto);
+    }
+
+    public SysSettingDto getSysSetting(){
+        SysSettingDto sysSettingDto = (SysSettingDto) redisUtils.get(Constants.REDIS_KEY_SYS_SETTING);
+        sysSettingDto = sysSettingDto == null ? new SysSettingDto() : sysSettingDto;
+        return sysSettingDto;
     }
 }

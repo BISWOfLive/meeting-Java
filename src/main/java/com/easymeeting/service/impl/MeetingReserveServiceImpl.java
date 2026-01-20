@@ -7,10 +7,14 @@ import java.util.List;
 import javax.annotation.Resource;
 
 import com.easymeeting.entity.enums.MeetingReserveStatusEnum;
+import com.easymeeting.entity.enums.MeetingStatusEnum;
 import com.easymeeting.entity.enums.ResponseCodeEnum;
+import com.easymeeting.entity.po.MeetingInfo;
 import com.easymeeting.entity.po.MeetingReserveMember;
+import com.easymeeting.entity.query.MeetingInfoQuery;
 import com.easymeeting.entity.query.MeetingReserveMemberQuery;
 import com.easymeeting.exception.BusinessException;
+import com.easymeeting.mappers.MeetingInfoMapper;
 import com.easymeeting.mappers.MeetingReserveMemberMapper;
 import org.springframework.stereotype.Service;
 
@@ -36,6 +40,10 @@ public class MeetingReserveServiceImpl implements MeetingReserveService {
 
 	@Resource
 	private MeetingReserveMemberMapper<MeetingReserveMember, MeetingReserveMemberQuery> meetingReserveMemberMapper;
+
+	@Resource
+	private MeetingInfoMapper<MeetingInfo, MeetingInfoQuery> meetingInfoMapper;
+
 	/**
 	 * 根据条件查询列表
 	 */
@@ -142,16 +150,36 @@ public class MeetingReserveServiceImpl implements MeetingReserveService {
 	@Override
 	/**
 	 * 创建会议预约
-	 * 设置会议ID、创建时间和状态，保存会议预约信息，并为邀请的用户和创建用户创建会议预约成员记录
+	 * 设置会议ID、会议号、创建时间和状态，保存会议预约信息，并为邀请的用户和创建用户创建会议预约成员记录，
+	 * 同时同步创建正式会议记录（meeting_info），保证通过 preJoinMeeting 按会议号即可查询到预约会议
 	 *
 	 * @param bean 会议预约实体对象，包含会议预约的详细信息，如邀请用户ID、创建用户ID等
 	 */
+	@Transactional(rollbackFor = Exception.class)
 	public void createMeetingReserve(MeetingReserve bean) {
-		// 设置会议ID、创建时间和状态
+		// 设置会议ID、会议号、创建时间和状态
 		bean.setMeetingId(StringTools.getMeetingNoOrMeetingId());
+		bean.setMeetingNo(StringTools.getMeetingNoOrMeetingId());
 		bean.setCreateTime(new Date());
 		bean.setStatus(MeetingReserveStatusEnum.NO_START.getStatus());
 		this.meetingReserveMapper.insert(bean);
+
+		// 同步创建正式会议记录，会议号与预约一致，状态为进行中，便于直接通过 preJoinMeeting 加入
+		MeetingInfo meetingInfo = new MeetingInfo();
+		meetingInfo.setMeetingId(bean.getMeetingId());
+		meetingInfo.setMeetingNo(bean.getMeetingNo());
+		meetingInfo.setMeetingName(bean.getMeetingName());
+		meetingInfo.setJoinType(bean.getJoinType());
+		meetingInfo.setJoinPassword(bean.getJoinPassword());
+		meetingInfo.setCreateTime(bean.getCreateTime());
+		meetingInfo.setCreateUserId(bean.getCreateUserId());
+		meetingInfo.setStartTime(bean.getStartTime());
+		if (bean.getStartTime() != null && bean.getDuration() != null) {
+			// 结束时间 = 开始时间 + 会议时长（分钟）
+			meetingInfo.setEndTime(new Date(bean.getStartTime().getTime() + bean.getDuration() * 60L * 1000L));
+		}
+		meetingInfo.setStatus(MeetingStatusEnum.RUNING.getStatus());
+		this.meetingInfoMapper.insert(meetingInfo);
 		
 		// 初始化会议预约成员列表
 		List<MeetingReserveMember> meetingReserveMemberList = new ArrayList<>();
@@ -176,8 +204,6 @@ public class MeetingReserveServiceImpl implements MeetingReserveService {
 		meetingReserveMemberMapper.insertBatch(meetingReserveMemberList);
 	}
 
-	@Override
-	@Transactional(rollbackFor = Exception.class)
 	/**
 	 * 删除会议预约
 	 * 根据会议ID和创建用户ID删除会议预约记录，并同时删除相关的会议成员记录
@@ -185,6 +211,8 @@ public class MeetingReserveServiceImpl implements MeetingReserveService {
 	 * @param meetingId 会议ID，用于标识特定的会议预约
 	 * @param userId 创建用户ID，用于验证删除权限
 	 */
+	@Transactional(rollbackFor = Exception.class)
+	@Override
 	public void delMeetingReserve(String meetingId, String userId) {
 		// 构建查询条件，根据会议ID和创建用户ID删除会议预约
 		MeetingReserveQuery meetingReserveQuery = new MeetingReserveQuery();
@@ -192,11 +220,13 @@ public class MeetingReserveServiceImpl implements MeetingReserveService {
 		meetingReserveQuery.setCreateUserId(userId);
 		Integer count = this.meetingReserveMapper.deleteByParam(meetingReserveQuery);
 		
-		// 如果会议预约删除成功，则删除相关的会议成员记录
+		// 如果会议预约删除成功，则删除相关的会议成员记录和正式会议记录
 		if (count > 0){
 			MeetingReserveMemberQuery memberQuery = new MeetingReserveMemberQuery();
 			memberQuery.setMeetingId(meetingId);
 			this.meetingReserveMemberMapper.deleteByParam(memberQuery);
+			// 同步删除正式会议记录，避免预约删除后会议仍可被查询到
+			this.meetingInfoMapper.deleteByMeetingId(meetingId);
 		}
 	}
 

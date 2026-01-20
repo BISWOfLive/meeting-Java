@@ -14,7 +14,7 @@ public enum UserStatusEnum {
         this.desc = desc;
     }
 
-    public static  UserStatusEnum getByStatus(String status){
+    public static  UserStatusEnum getByStatus(Integer status){
         for (UserStatusEnum item : UserStatusEnum.values()) {
             if (item.getStatus().equals(status)){
                 return item;

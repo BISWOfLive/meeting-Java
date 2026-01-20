@@ -1,5 +1,7 @@
 package com.easymeeting.service.impl;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
@@ -7,15 +9,18 @@ import javax.annotation.Resource;
 
 import com.easymeeting.entity.config.AppConfig;
 import com.easymeeting.entity.constants.Constants;
+import com.easymeeting.entity.dto.MessageSendDto;
 import com.easymeeting.entity.dto.TokenUserInfoDto;
-import com.easymeeting.entity.enums.UserStatusEnum;
+import com.easymeeting.entity.enums.*;
 import com.easymeeting.entity.vo.UserInfoVo;
 import com.easymeeting.exception.BusinessException;
 import com.easymeeting.redis.RedisComponent;
 import com.easymeeting.utils.CopyTools;
+import com.easymeeting.utils.FFmpegUtils;
+import com.easymeeting.websocket.message.MessageHandler;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.easymeeting.entity.enums.PageSize;
 import com.easymeeting.entity.query.UserInfoQuery;
 import com.easymeeting.entity.po.UserInfo;
 import com.easymeeting.entity.vo.PaginationResultVO;
@@ -23,6 +28,7 @@ import com.easymeeting.entity.query.SimplePage;
 import com.easymeeting.mappers.UserInfoMapper;
 import com.easymeeting.service.UserInfoService;
 import com.easymeeting.utils.StringTools;
+import org.springframework.web.multipart.MultipartFile;
 
 
 /**
@@ -37,6 +43,12 @@ public class UserInfoServiceImpl implements UserInfoService {
     private AppConfig appConfig;
     @Resource
     private RedisComponent redisComponent;
+	@Resource
+	private FFmpegUtils fFmpegUtils;
+	@Resource
+	private MessageHandler messageHandler;
+
+
 
 	/**
 	 * 根据条件查询列表
@@ -212,5 +224,78 @@ public class UserInfoServiceImpl implements UserInfoService {
 		return userInfoVo;
 	}
 
+	/**
+	 * 更新用户信息，包括头像上传、昵称和性别等信息
+	 * @param avatar   用户上传的新头像文件，如果不需要更新头像则为null
+	 * @param userInfo 包含用户更新信息的UserInfo对象，其中必须包含userId以确定更新哪个用户
+	 * @throws IOException 文件操作异常
+	 */
+	@Override
+	public void updateUserInfo(MultipartFile avatar, UserInfo userInfo) throws IOException {
+		// 如果用户上传了新的头像文件，则处理头像上传和保存
+		if (avatar != null) {
+			// 构建头像存储目录路径
+			String folder = appConfig.getProjectFolder() + Constants.FILE_FOLDER_FILE + Constants.FILE_FOLDER_AVATAR_NAME;
+			File folderFile = new File(folder);
+			// 检查并创建头像存储目录
+			if (!folderFile.exists()) {
+				folderFile.mkdirs();
+			}
+			// 生成头像文件名，使用用户ID+图片后缀名
+			String realFileName = userInfo.getUserId() + Constants.IMAGE_SUFFIX;
+			// 完整的头像文件保存路径
+			String filePath = folder + realFileName;
+			// 创建临时文件用于存储上传的原始图片
+			File tempFile = new File(appConfig.getProjectFolder() + Constants.FILE_FOLDER_TEMP + StringTools.getRandomString(Constants.LENGTH_30));
+			// 将上传的头像文件保存到临时位置
+			avatar.transferTo(tempFile);
+			// 使用FFmpeg工具将临时文件转换为缩略图并保存到最终位置
+			fFmpegUtils.createImageThumbnail(tempFile, filePath);
+		}
+		this.userInfoMapper.updateByUserId(userInfo, userInfo.getUserId());
+		TokenUserInfoDto userInfoDto = redisComponent.getTokenUserInfoDtoByUserId(userInfo.getUserId());
+		userInfoDto.setNickName(userInfo.getNickName());
+		userInfoDto.setSex(userInfo.getSex());
+		redisComponent.saveTokenUserInfoDto(userInfoDto);
+	}
 
+	@Override
+	public void updatePassword(String userId, String oldPwd, String newPwd){
+		UserInfo userInfo = userInfoMapper.selectByUserId(userId);
+		if (userInfo == null){
+			throw new BusinessException(ResponseCodeEnum.CODE_600);
+		}
+		if (!userInfo.getPassword().equals(StringTools.encodeByMD5(oldPwd))){
+			throw new BusinessException("与旧密码不一致");
+		}
+		UserInfo updateInfo = new UserInfo();
+		updateInfo.setPassword(StringTools.encodeByMD5(newPwd));
+		userInfoMapper.updateByUserId(updateInfo,userId);
+		redisComponent.clearTokenByUserId(userId);
+	}
+
+	@Override
+	public void updateUserStatus(Integer status, String userId) {
+		UserStatusEnum byStatus = UserStatusEnum.getByStatus(status);
+		if (byStatus == null) throw  new BusinessException(ResponseCodeEnum.CODE_600);
+		UserInfo userInfo = new UserInfo();
+		userInfo.setStatus(status);
+		userInfoMapper.updateByUserId(userInfo,userId);
+
+		if (UserStatusEnum.DISABLE == byStatus){
+			forceOffLine(userId );
+		}
+	}
+
+	@Override
+	public void forceOffLine(String userId) {
+		UserInfo userInfo = userInfoMapper.selectByUserId(userId);
+		if (Constants.ZERO.equals(userInfo.getOnlineType())){
+			return;
+		}
+		MessageSendDto sendDto = new MessageSendDto () ;
+		sendDto.setMessageSend2Type (MessageSend2TypeEnum. USER.getType ());sendDto. setMessageType (MessageTypeEnum. FORCE_OFF_LINE.getType ()) ;sendDto.setReceiveUserId(userId);
+		messageHandler.sendMessage(sendDto) ;
+		redisComponent.clearTokenByUserId(userId); ;
+	}
 }

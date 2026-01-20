@@ -21,6 +21,11 @@ public class MeetingReserve implements Serializable {
 	private String meetingId;
 
 	/**
+	 * 会议号（预约时生成，用于通过 preJoinMeeting 加入会议）
+	 */
+	private String meetingNo;
+
+	/**
 	 * 会议名称
 	 */
 	private String meetingName;
@@ -90,6 +95,14 @@ public class MeetingReserve implements Serializable {
 
 	public String getMeetingId(){
 		return this.meetingId;
+	}
+
+	public void setMeetingNo(String meetingNo){
+		this.meetingNo = meetingNo;
+	}
+
+	public String getMeetingNo(){
+		return this.meetingNo;
 	}
 
 	public void setMeetingName(String meetingName){

@@ -164,6 +164,19 @@ public class MeetingInfoServiceImpl implements MeetingInfoService {
         meetingInfo.setMeetingId(StringTools.getMeetingNoOrMeetingId());
         meetingInfo.setStartTime(date);
         meetingInfo.setStatus(MeetingStatusEnum.RUNING.getStatus());
+        // 固定会议号（如用户个人会议号）可能已被历史会议占用，清理未在进行中的同号记录，避免 uk_meeting_no 唯一索引冲突
+        if (!StringTools.isEmpty(meetingInfo.getMeetingNo())) {
+            MeetingInfoQuery meetingInfoQuery = new MeetingInfoQuery();
+            meetingInfoQuery.setMeetingNo(meetingInfo.getMeetingNo());
+            List<MeetingInfo> meetingInfoList = meetingInfoMapper.selectList(meetingInfoQuery);
+            for (MeetingInfo meetingInfoOld : meetingInfoList) {
+                // Redis 中存在实时房间说明会议仍在进行，不允许重复创建
+                if (!redisComponent.getMeetingMemberList(meetingInfoOld.getMeetingId()).isEmpty()) {
+                    throw new BusinessException("该会议号正在会议中,无法重复创建");
+                }
+                meetingInfoMapper.deleteByMeetingId(meetingInfoOld.getMeetingId());
+            }
+        }
         this.meetingInfoMapper.insert(meetingInfo);
     }
 

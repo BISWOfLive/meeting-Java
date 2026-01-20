@@ -1,5 +1,6 @@
 package com.easymeeting.entity.po;
 
+import com.easymeeting.entity.constants.Constants;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.Date;
 import com.easymeeting.entity.enums.DateTimePatternEnum;
@@ -68,6 +69,15 @@ public class UserInfo implements Serializable {
 	 */
 	private String meetingNo;
 
+	private Integer onlineType;
+
+	public Integer getOnlineType() {
+		if (lastLoginTime != null && lastLoginTime > lastOffTime) {
+			return Constants.ONE;
+		}else {
+			return Constants.ZERO;
+		}
+	}
 
 	public void setUserId(String userId){
 		this.userId = userId;

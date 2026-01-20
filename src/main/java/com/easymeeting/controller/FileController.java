@@ -119,7 +119,7 @@ public class FileController extends ABaseController {
                     response.setHeader("Content-length", "" + length);
                     response.setHeader("Content-Range", "bytes " + requestStart + "-" + (contentLength - 1) + "/" + contentLength);
                 }
-
+            }
                 int needSize = requestSize;
                 randomFile.seek(start);
                 while (needSize > 0) {
@@ -134,7 +134,6 @@ public class FileController extends ABaseController {
                     }
                     needSize -= buffer.length;
                 }
-            }
             randomFile.close();
         } catch (Exception e) {
             log.error("读取文件信息失败");
